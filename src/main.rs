@@ -22,7 +22,7 @@ use thread::ThreadPool;
 
 const DEFAULT_ADDRESS: &str        = "localhost";
 const DEFAULT_PORT: u32           = 6969;
-const DEFAULT_THREAD_COUNT: usize = 128;
+const DEFAULT_THREAD_COUNT: usize = 64;
 
 fn entry() -> Result<(), String> {
     let mut args = args();

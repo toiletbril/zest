@@ -50,8 +50,6 @@ fn parse_http_request(stream: &TcpStream) -> Option<(Parameters, Headers, HttpMe
 
     let lines: Vec<String> = reader.lines().filter_map(Result::ok).take_while(|x| x.len() > 2).collect();
 
-    println!("{:#?}", lines);
-
     if lines.is_empty() {
         return None;
     }
