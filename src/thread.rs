@@ -1,54 +1,59 @@
-use std::sync::{Mutex, Arc};
-use std::thread::{JoinHandle, Builder};
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::{Arc, Mutex};
+use std::thread::{Builder, JoinHandle};
 
 use crate::common::Am;
+use crate::log;
+use crate::logger::Logger;
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
 struct Worker {
-    _thread: JoinHandle<()>,
-    _receiver: Am<Receiver<Job>>,
+    id: usize,
+    handle: Option<JoinHandle<()>>,
 }
 
 impl Worker {
-    fn new(_id: usize, receiver: Am<Receiver<Job>>) -> Self {
+    fn new(id: usize, receiver: Am<Receiver<Job>>, logger: Am<Logger>) -> Self {
         let receiver_clone = receiver.clone();
 
-        let builder = Builder::new()
-            .name("worker".to_string());
+        let builder = Builder::new().name("worker".to_string());
 
-        match builder.spawn(move || loop {
-            let mut to_exec = None;
+        let main_loop = move || loop {
+            {
+                let to_exec = match receiver_clone.lock() {
+                    Ok(queue) => queue.recv().ok(),
+                    Err(err) => {
+                        log!(logger, "*** Shutting down: {}", err);
+                        break;
+                    }
+                };
 
-            if let Ok(queue) = receiver_clone.lock() {
-                if let Ok(job) = queue.recv() {
-                    to_exec = Some(job)
+                if let Some(job) = to_exec {
+                    job()
                 }
             }
+        };
 
-            if let Some(job) = to_exec {
-                job()
-
-            }
-        }) {
+        match builder.spawn(move || main_loop()) {
             Ok(thread) => Worker {
-                _thread: thread,
-                _receiver: receiver,
+                id: id,
+                handle: Some(thread),
             },
-            Err(err) => panic!("*** An error occured while creating worker thread: {}", err)
+            Err(err) => panic!("*** An error occured while creating worker thread: {}", err),
         }
     }
 }
 
 pub struct ThreadPool {
-    _workers: Vec<Worker>,
-    sender: Sender<Job>,
+    workers: Vec<Worker>,
+    sender: Option<Sender<Job>>,
+    logger: Am<Logger>,
     size: usize,
 }
 
 impl ThreadPool {
-    pub fn new(size: usize) -> Self {
+    pub fn new(size: usize, logger: Am<Logger>) -> Self {
         assert!(size > 0, "Size should be greater than zero");
         let mut workers = Vec::with_capacity(size);
 
@@ -56,12 +61,13 @@ impl ThreadPool {
         let receiver_ref = Arc::new(Mutex::new(receiver));
 
         for id in 0..size {
-            workers.push(Worker::new(id, receiver_ref.clone()));
+            workers.push(Worker::new(id, receiver_ref.clone(), logger.clone()));
         }
 
         ThreadPool {
-            _workers: workers,
-            sender: sender,
+            workers: workers,
+            sender: Some(sender),
+            logger: logger,
             size: size,
         }
     }
@@ -75,9 +81,28 @@ impl ThreadPool {
         F: FnOnce() + Send + 'static,
     {
         let job = Box::new(func);
-        match self.sender.send(job) {
-            Ok(()) => {}
-            Err(_val) => todo!()
+
+        if let Some(sender) = &self.sender {
+            match sender.send(job) {
+                Ok(()) => {}
+                Err(_val) => todo!(),
+            }
+        } else {
+            panic!("*** Dropped thread pool can not execute more jobs.");
+        }
+    }
+}
+
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        log!(self.logger, "*** Dropping thread pool...");
+        drop(self.sender.take());
+
+        for worker in &mut self.workers {
+            log!(self.logger, "*** Dropping worker {}...", worker.id);
+            if let Some(thread) = worker.handle.take() {
+                thread.join().unwrap();
+            }
         }
     }
 }
