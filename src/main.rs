@@ -20,8 +20,6 @@ mod router;
 use dispatcher::start_dispatcher;
 use logger::Logger;
 
-use crate::router::route;
-
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const DEFAULT_ADDRESS: &str = "localhost";
@@ -101,7 +99,7 @@ fn entry() -> Result<(), String> {
                         format!("{address}:{port}"),
                         thread_count,
                         logger_clone,
-                        route,
+                        router::route,
                     );
                 });
 
