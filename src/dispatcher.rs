@@ -24,6 +24,7 @@ pub fn start_dispatcher(
                 log!(logger, "Received a connection '{}'", stream.peer_addr()?);
 
                 let logger_clone = logger.clone();
+
                 thread_pool.enqueue(move || {
                     let _ = job(stream, logger_clone);
                 });

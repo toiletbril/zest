@@ -42,13 +42,20 @@ pub fn serve_music_chunk(connection: &mut HttpConnection, logger: &Am<Logger>) -
 }
 
 pub fn handle_stream(stream: TcpStream, logger: Am<Logger>) -> Result<(), Error> {
-    let mut connection = HttpConnection::from(stream);
-    log!(logger, "Handling {:?}", connection);
+    let connection = HttpConnection::new(stream);
 
-    serve_music_chunk(&mut connection, &logger)?;
+    if let Ok(mut connection) = connection {
+        log!(logger, "Handling {:?}", connection);
 
-    log!(logger, "Closing {:?}", connection.stream);
-    drop(connection);
+        serve_music_chunk(&mut connection, &logger)?;
 
-    Ok(())
+        log!(logger, "Closing {:?}", connection.stream);
+        drop(connection);
+
+        Ok(())
+    } else {
+        let err = connection.unwrap_err();
+        log!(logger, "*** ERROR: Invalid HTTP connection: {:?}", err);
+        Err(err)
+    }
 }
