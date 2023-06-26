@@ -19,11 +19,11 @@ impl Default for HttpMethod {
 
 #[derive(Debug)]
 pub struct HttpConnection {
-    stream: TcpStream,
-    method: HttpMethod,
-    path: Path,
-    headers: Headers,
-    parameters: Parameters,
+    pub stream: TcpStream,
+    pub method: HttpMethod,
+    pub path: Path,
+    pub headers: Headers,
+    pub parameters: Parameters,
 }
 
 impl Write for HttpConnection {

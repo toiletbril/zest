@@ -1,6 +1,6 @@
 use std::io::Error;
+use std::thread::current;
 use std::time::SystemTime;
-use std::thread::{current};
 
 #[macro_export]
 macro_rules! flush {
@@ -15,13 +15,14 @@ macro_rules! flush {
 
 #[macro_export]
 macro_rules! time {
-    () => {{
+    ($utc:expr) => {{
         let _duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("Should be able to get time");
-        let _secs = _duration.as_secs() % 60;
-        let _mins = (_duration.as_secs() / 60) % 60;
-        let _hrs = (_duration.as_secs() / 3600) % 24;
+            .expect("Should be able to get time")
+            .as_secs() + $utc * 3600;
+        let _secs = _duration % 60;
+        let _mins = (_duration / 60) % 60;
+        let _hrs = (_duration / 3600) % 24;
         format!("{:02}:{:02}:{:02}", _hrs, _mins, _secs)
     }};
 }
@@ -44,22 +45,27 @@ type LogQueue = Vec<String>;
 pub struct Logger {
     index: usize,
     queue: LogQueue,
+    utc: u64,
 }
 
 impl Logger {
-    pub fn new() -> Self {
+    pub fn new(utc: u64) -> Self {
         return Logger {
             index: 1,
             queue: vec![],
+            utc: utc,
         };
     }
-}
 
-impl Logger {
     pub fn log(&mut self, message: String) {
-        self.queue
-            .push(format!("{} [{}] {:?}\n> {}",
-                  self.index, time!(), current().id(), message));
+        self.queue.push(format!(
+            "{} [{}] {:?} > {}: {}",
+            self.index,
+            time!(self.utc),
+            current().id(),
+            current().name().map_or("MAIN".to_string(), |x| x.to_uppercase()),
+            message
+        ));
         self.index += 1;
     }
 

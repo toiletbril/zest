@@ -7,19 +7,21 @@ use crate::logger::{Logger};
 use crate::thread::ThreadPool;
 
 pub fn start_dispatcher(
-    adress: String,
-    thread_pool: ThreadPool,
+    address: String,
+    thread_count: usize,
     logger: Am<Logger>,
     job: fn(TcpStream, Am<Logger>) -> Result<(), Error>
 ) -> Result<(), Error> {
-    let listener = TcpListener::bind(adress)?;
+    log!(logger, "Binding to <http://{address}>...");
+    let listener = TcpListener::bind(address)?;
 
-    log!(logger, "DISPATCHER: Started. Available threads: {}.", thread_pool.size());
+    let thread_pool = ThreadPool::new(thread_count);
+    log!(logger, "Started. Available threads: {}.", thread_pool.size());
 
     for connection in listener.incoming() {
         match connection {
             Ok(stream) => {
-                log!(logger, "DISPATCHER: Received a connection '{}'", stream.peer_addr()?);
+                log!(logger, "Received a connection '{}'", stream.peer_addr()?);
 
                 let logger_clone = logger.clone();
                 thread_pool.enqueue(move || {
@@ -28,7 +30,7 @@ pub fn start_dispatcher(
             }
 
             Err(err) => {
-                log!(logger, "*** DISPATCHER: An error occured: '{}'", err);
+                log!(logger, "*** An error occured: '{}'", err);
             }
         }
     }

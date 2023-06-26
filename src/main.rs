@@ -1,7 +1,7 @@
 use std::env::args;
 use std::process::ExitCode;
 use std::sync::{Arc, Mutex};
-use std::thread::{sleep, spawn};
+use std::thread::{sleep, Builder};
 use std::time::Duration;
 
 extern crate toiletcli;
@@ -13,16 +13,18 @@ mod common;
 mod logger;
 mod dispatcher;
 mod thread;
-mod worker;
+mod music;
 mod http;
 
 use logger::{Logger};
 use dispatcher::start_dispatcher;
-use thread::ThreadPool;
 
-const DEFAULT_ADDRESS: &str        = "localhost";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+const DEFAULT_ADDRESS: &str       = "localhost";
 const DEFAULT_PORT: u32           = 6969;
-const DEFAULT_THREAD_COUNT: usize = 64;
+const DEFAULT_THREAD_COUNT: usize = 8;
+const DEFAULT_UTC: u64            = 0;
 
 fn entry() -> Result<(), String> {
     let mut args = args();
@@ -31,10 +33,12 @@ fn entry() -> Result<(), String> {
     let mut port_flag;
     let mut address_flag;
     let mut thread_count_flag;
+    let mut utc_flag;
 
     let mut show_help;
 
     let mut flags: Vec<Flag> = flags!(
+        utc_flag: StringFlag,          ["-u", "--utc"],
         thread_count_flag: StringFlag, ["-t", "--threads"],
         show_help: BoolFlag,           ["-?", "--help"],
         port_flag: StringFlag,         ["-p", "--port"],
@@ -53,18 +57,21 @@ fn entry() -> Result<(), String> {
         .unwrap_or(DEFAULT_PORT);
     let thread_count = thread_count_flag.parse::<usize>()
         .unwrap_or(DEFAULT_THREAD_COUNT);
+    let utc = utc_flag.parse::<u64>()
+        .unwrap_or(DEFAULT_UTC);
 
     if show_help {
         println!("USAGE: {} [-options] <subcommand>", program_name);
-        println!("Web-server capable of streaming music.");
+        println!("Multipurpose web-server.");
         println!("");
-        println!("SUBCOMMANDS:  serve <directory>    \tServe the directory. Does not do anything YET.");
+        println!("SUBCOMMANDS:  serve <directory> \tServe the directory. Does not do anything YET.");
         println!("");
-        println!("OPTIONS:      -p, --port <port>    \tSet server's port.   Default: '{}'", DEFAULT_PORT);
-        println!("              -a, --address <adress>\tSet server's address. Default: '{}'", DEFAULT_ADDRESS);
-        println!("              -t, --threads <count>\tThread count. Default: '{}'", DEFAULT_THREAD_COUNT);
+        println!("OPTIONS:      -p, --port <port>      \tSet server's port.");
+        println!("              -a, --address <adress> \tSet server's address.");
+        println!("              -t, --threads <count>  \tThreads to create.");
+        println!("              -u, --utc <hours>      \tUTC adjustment for logger.");
         println!("");
-        println!("(c) toiletbril <https://github.com/toiletbril>");
+        println!("{} (c) toiletbril <https://github.com/toiletbril>", VERSION);
         return Ok(());
     }
 
@@ -74,19 +81,18 @@ fn entry() -> Result<(), String> {
 
     match args[0].as_str() {
         "serve" => {
-            let logger = Arc::new(Mutex::new(Logger::new()));
-            log!(logger, "MAIN: Serving at <http://{address}:{port}>...");
-            log!(logger, "MAIN: Starting the dispatcher...");
-
-            let thread_pool = ThreadPool::new(thread_count);
+            let logger = Arc::new(Mutex::new(Logger::new(utc)));
             let logger_clone = logger.clone();
 
-            let _ = spawn(move || {
+            log!(logger, "Starting the dispatcher...");
+            let _ = Builder::new()
+                .name("DISPATCHER".to_string())
+                .spawn(move || {
                 let _ = start_dispatcher(format!("{address}:{port}"),
-                                         thread_pool, logger_clone, worker::handle_stream);
+                                         thread_count, logger_clone, music::handle_stream);
             });
 
-            log!(logger, "MAIN: Starting log loop...");
+            log!(logger, "Starting the logger...");
 
             loop {
                 let _ = flush!(logger);

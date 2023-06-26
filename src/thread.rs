@@ -1,5 +1,5 @@
 use std::sync::{Mutex, Arc};
-use std::thread::{JoinHandle, spawn};
+use std::thread::{JoinHandle, Builder};
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 use crate::common::Am;
@@ -15,7 +15,10 @@ impl Worker {
     fn new(_id: usize, receiver: Am<Receiver<Job>>) -> Self {
         let receiver_clone = receiver.clone();
 
-        let thread = spawn(move || loop {
+        let builder = Builder::new()
+            .name("WORKER".to_string());
+
+        match builder.spawn(move || loop {
             let mut to_exec = None;
 
             if let Ok(queue) = receiver_clone.lock() {
@@ -26,12 +29,14 @@ impl Worker {
 
             if let Some(job) = to_exec {
                 job()
-            }
-        });
 
-        Worker {
-            _thread: thread,
-            _receiver: receiver,
+            }
+        }) {
+            Ok(thread) => Worker {
+                _thread: thread,
+                _receiver: receiver,
+            },
+            Err(err) => panic!("*** An error occured while creating worker thread: {}", err)
         }
     }
 }
