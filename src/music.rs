@@ -34,8 +34,19 @@ pub fn serve_music_chunk(
     chunk_index: usize,
 ) -> Result<(), std::io::Error> {
     let mut file = File::open(&FILE)?;
+    let max_size = if let Ok(meta) = file.metadata() {
+        meta.len() as usize
+    } else {
+        0
+    };
 
     let start_pos = chunk_index * CHUNK_SIZE as usize;
+
+    if max_size < start_pos {
+        connection.write_all(b"HTTP/1.1 204 No Content\r\n\r\n")?;
+        connection.flush()?;
+        return Ok(());
+    }
 
     file.seek(SeekFrom::Start(start_pos as u64))?;
 
@@ -48,13 +59,8 @@ pub fn serve_music_chunk(
         }
     };
 
-    log!(
-        logger,
-        "Serving a chunk '{}' [{}..{}].",
-        FILE,
-        start_pos,
-        start_pos + CHUNK_SIZE
-    );
+    log!(logger,
+        "Serving a chunk '{}' [{}..{}].", FILE, start_pos, start_pos + CHUNK_SIZE);
 
     connection.write_all(b"HTTP/1.1 200 OK\r\n")?;
     connection.write_all(b"Content-Type: audio/mpeg\r\n")?;
