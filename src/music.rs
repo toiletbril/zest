@@ -16,7 +16,12 @@ pub fn music_handler(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
 ) -> Result<(), Box<dyn Error>> {
-    if let Err(err) = serve_music_chunk(connection, logger, 0) {
+    let chunk: usize = connection.params()
+        .and_then(|x| x.get("chunk"))
+        .and_then(|x| x.parse::<usize>().ok())
+        .unwrap_or(0);
+
+    if let Err(err) = serve_music_chunk(connection, logger, chunk) {
         Err(Box::new(err))
     } else {
         Ok(())

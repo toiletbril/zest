@@ -29,7 +29,7 @@ macro_rules! time {
 
 #[macro_export]
 macro_rules! log {
-    ($logger:ident, $($msg:expr),*) => {
+    ($logger:expr, $($msg:expr),*) => {
         if let Ok(mut logger) = $logger.lock() {
             logger.log(format!($($msg),*));
         }

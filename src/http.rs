@@ -1,19 +1,20 @@
 use std::io::{Error, ErrorKind, Read, Write};
 use std::net::TcpStream;
 
-#[derive(Debug)]
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum HttpMethod {
+    UNKN,
     GET,
     POST,
     PUT,
     PATCH,
     DELETE,
-    UNKN,
 }
 
 impl Default for HttpMethod {
     fn default() -> Self {
-        HttpMethod::GET
+        HttpMethod::UNKN
     }
 }
 
@@ -197,6 +198,7 @@ impl Drop for HttpConnection {
     }
 }
 
+#[allow(unused)]
 impl HttpConnection {
     pub fn new(mut stream: TcpStream) -> Result<Self, Error> {
         let result = parse_http_headers(&mut stream);
@@ -217,19 +219,19 @@ impl HttpConnection {
         &mut self.stream
     }
 
-    pub fn method(&mut self) -> &HttpMethod {
-        &self.method
+    pub fn method(&self) -> HttpMethod {
+        self.method.to_owned()
     }
 
-    pub fn path(&mut self) -> &String {
-        &self.path
+    pub fn path(&self) -> String {
+        self.path.to_owned()
     }
 
     pub fn headers(&self) -> &Headers {
         &self.headers
     }
 
-    pub fn params(&self) -> &Option<Parameters> {
-        &self.parameters
+    pub fn params(&self) -> Option<&Parameters> {
+      self.parameters.as_ref()
     }
 }
