@@ -5,8 +5,8 @@ No foreign dependencies means I will (try) to not use any code that is not in st
 
 Rust is still high level as heck though...
 
-## Goal
-- Ability to dynamically stream music from a folder and all subfolders in it.
+The goal is an ability to dynamically stream music files from a folder and it's subfolders.
 
 ## TODO
-- Super logging
+- Decide how to log properly and stick with it.
+- Graceful drop trait for thread pool.
