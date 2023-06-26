@@ -16,7 +16,7 @@ impl Worker {
         let receiver_clone = receiver.clone();
 
         let builder = Builder::new()
-            .name("WORKER".to_string());
+            .name("worker".to_string());
 
         match builder.spawn(move || loop {
             let mut to_exec = None;

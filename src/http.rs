@@ -1,4 +1,4 @@
-use std::io::{Write, Read, Error, ErrorKind};
+use std::io::{Error, ErrorKind, Read, Write};
 use std::net::TcpStream;
 
 #[derive(Debug)]
@@ -19,11 +19,11 @@ impl Default for HttpMethod {
 
 #[derive(Debug)]
 pub struct HttpConnection {
-    pub stream: TcpStream,
-    pub method: HttpMethod,
-    pub path: Path,
-    pub headers: Headers,
-    pub parameters: Option<Parameters>,
+    stream: TcpStream,
+    method: HttpMethod,
+    path: Path,
+    headers: Headers,
+    parameters: Option<Parameters>,
 }
 
 impl Write for HttpConnection {
@@ -45,7 +45,9 @@ type Path = String;
 
 const MAX_HEADER_SIZE: usize = 4 * 1024;
 
-fn parse_http_headers(stream: &mut TcpStream) -> Result<(Headers, Option<Parameters>, HttpMethod, Path), Error> {
+fn parse_http_headers(
+    stream: &mut TcpStream,
+) -> Result<(Headers, Option<Parameters>, HttpMethod, Path), Error> {
     let mut headers = HashMap::new();
     let mut parameters = None;
 
@@ -78,9 +80,10 @@ fn parse_http_headers(stream: &mut TcpStream) -> Result<(Headers, Option<Paramet
 
                     if prev_character == Some('\r') && current_line.is_empty() {
                         return Ok((headers, parameters, method, path));
-                    }
-                    else {
-                        let _ = parse_header_line(&current_line, &mut headers);
+                    } else {
+                        if let Err(err) = parse_header_line(&current_line, &mut headers) {
+                            return Err(err);
+                        }
                     }
 
                     current_line.clear();
@@ -198,17 +201,35 @@ impl HttpConnection {
     pub fn new(mut stream: TcpStream) -> Result<Self, Error> {
         let result = parse_http_headers(&mut stream);
         if let Ok((headers, parameters, method, path)) = result {
-            Ok(
-                HttpConnection {
-                    stream,
-                    method,
-                    path,
-                    headers,
-                    parameters,
-                }
-            )
+            Ok(HttpConnection {
+                stream,
+                method,
+                path,
+                headers,
+                parameters,
+            })
         } else {
             Err(result.unwrap_err())
         }
+    }
+
+    pub fn stream(&mut self) -> &mut TcpStream {
+        &mut self.stream
+    }
+
+    pub fn method(&mut self) -> &HttpMethod {
+        &self.method
+    }
+
+    pub fn path(&mut self) -> &String {
+        &self.path
+    }
+
+    pub fn headers(&self) -> &Headers {
+        &self.headers
+    }
+
+    pub fn params(&self) -> &Option<Parameters> {
+        &self.parameters
     }
 }
