@@ -14,14 +14,11 @@ pub fn start_dispatcher(
     job: fn(&mut HttpConnection, &Am<Logger>) -> Result<(), Box<dyn Error>>,
 ) -> Result<(), std::io::Error> {
     log!(logger, "Binding to <http://{address}>...");
-    let listener = TcpListener::bind(address)?;
 
-    let thread_pool = ThreadPool::new(thread_count);
-    log!(
-        logger,
-        "Started. Available threads: {}.",
-        thread_pool.size()
-    );
+    let listener = TcpListener::bind(address)?;
+    let thread_pool = ThreadPool::new(thread_count, logger.clone());
+
+    log!(logger, "Started. Available threads: {}.", thread_pool.size());
 
     for connection in listener.incoming() {
         match connection {
