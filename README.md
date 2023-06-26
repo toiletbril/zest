@@ -9,3 +9,4 @@ The goal is an ability to dynamically stream music files from a folder and it's 
 
 ## TODO
 - HttpResponse.
+- Partial content?
