@@ -17,7 +17,7 @@ pub fn serve_music_chunk(connection: &mut HttpConnection, logger: &Am<Logger>) -
 
     // TODO: This should not be hardcoded
     let chunk_index = 0;
-    let start_pos = chunk_index * CHUNK_SIZE as u32;
+    let start_pos = chunk_index * CHUNK_SIZE as usize;
 
     file.seek(SeekFrom::Start(start_pos as u64))?;
 
@@ -25,13 +25,13 @@ pub fn serve_music_chunk(connection: &mut HttpConnection, logger: &Am<Logger>) -
     let bytes_read = match file.read(&mut buffer[..CHUNK_SIZE as usize]) {
         Ok(bytes_read) => bytes_read,
         Err(err) => {
-            log!(logger, "*** WORKER: Encountered an error while reading a chunk: {}.", err);
+            log!(logger, "*** Encountered an error while reading a chunk: {}.", err);
             connection.write_all(b"HTTP/1.1 500 Internal Server Error\r\n\r\n")?;
             return Err(err);
         }
     };
 
-    log!(logger, "WORKER: Serving a chunk.");
+    log!(logger, "Serving a chunk '{}' [{}..{}].", FILE, start_pos, start_pos + CHUNK_SIZE);
     connection.write_all(b"HTTP/1.1 200 OK\r\n")?;
     connection.write_all(b"Content-Type: audio/mpeg\r\n")?;
     connection.write_all(format!("Content-Length: {}\r\n\r\n", bytes_read).as_bytes())?;
@@ -43,11 +43,11 @@ pub fn serve_music_chunk(connection: &mut HttpConnection, logger: &Am<Logger>) -
 
 pub fn handle_stream(stream: TcpStream, logger: Am<Logger>) -> Result<(), Error> {
     let mut connection = HttpConnection::from(stream);
-    log!(logger, "WORKER: Handling {:?}", connection);
+    log!(logger, "Handling {:?}", connection);
 
     serve_music_chunk(&mut connection, &logger)?;
 
-    log!(logger, "WORKER: Closing {:?}", connection);
+    log!(logger, "Closing {:?}", connection.stream);
     drop(connection);
 
     Ok(())
