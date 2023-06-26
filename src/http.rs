@@ -232,6 +232,6 @@ impl HttpConnection {
     }
 
     pub fn params(&self) -> Option<&Parameters> {
-      self.parameters.as_ref()
+        self.parameters.as_ref()
     }
 }

@@ -69,9 +69,7 @@ fn entry() -> Result<(), String> {
         println!("USAGE: {} [-options] <subcommand>", program_name);
         println!("Multipurpose web-server.");
         println!("");
-        println!(
-            "SUBCOMMANDS:  serve <directory> \tServe the directory. Does not do anything YET."
-        );
+        println!("SUBCOMMANDS:  serve <directory> \tServe the directory. Does not do anything YET.");
         println!("");
         println!("OPTIONS:      -p, --port <port>      \tSet server's port.");
         println!("              -a, --address <adress> \tSet server's address.");
@@ -85,6 +83,8 @@ fn entry() -> Result<(), String> {
     if args.len() < 1 {
         return Err("Not enough arguments\nTry '--help' for more information.".to_string());
     }
+
+    println!("Running Zest web-server, version {} (c) toiletbril <https://github.com/toiletbril>", VERSION);
 
     match args[0].as_str() {
         "serve" => {
