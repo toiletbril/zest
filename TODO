@@ -1,5 +1,6 @@
-- Actual streaming with example frontend
-- kill() for ThreadPool
-- RepeatFlag to toiletcli for -vvvv
-- Verbose mode for logger
-- Date for logger (impossible)
+- Actual streaming with example frontend.
+- This looks kinda cluttered.
+- kill() for ThreadPool.
+- Verbose mode for logger.
+- Date for logger (impossible).
+- Http versioning.
