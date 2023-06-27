@@ -24,5 +24,5 @@ pub fn route<'a>(
 fn not_found<'a>() -> HttpResponse<'a> {
     HttpResponse::new(404, "Not Found")
         .set_header("Content-Type", "application/json")
-        .set_body("{{message: \"not found\"}}".as_bytes())
+        .set_body("{ \"message\": \"Page not found\" }".as_bytes())
 }

@@ -79,11 +79,17 @@ pub fn chunk_handler<'a>(
             if let Some(path) = filepath {
                 serve_music_chunk(connection, logger, chunk, path.to_string())?;
             } else {
-                HttpResponse::new(404, "Not Found").send(connection)?;
+                HttpResponse::new(404, "Not Found")
+                    .set_header("Content-Type", "application/json")
+                    .set_body("{ \"message\": \"Track specified was not found\" }".as_bytes())
+                    .send(connection)?;
             }
         }
     }
-    HttpResponse::new(404, "Not Found").send(connection)
+    HttpResponse::new(400, "Bad Request")
+        .set_header("Content-Type", "application/json")
+        .set_body("{ \"message\": \"Please specify track and chunk with path parameters\" }".as_bytes())
+        .send(connection)
 }
 
 fn serve_music_chunk<'a>(

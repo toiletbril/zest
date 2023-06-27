@@ -23,7 +23,7 @@ pub fn load_index(path: FilePath) -> Result<HashMap<FileName, FilePath>, Error> 
             if chars.next() != Some('"') {
                 return Err(Error::new(
                     ErrorKind::InvalidData,
-                    "File is not a Zest index.",
+                    "File is not a Zest index",
                 ));
             }
 
@@ -37,7 +37,7 @@ pub fn load_index(path: FilePath) -> Result<HashMap<FileName, FilePath>, Error> 
             if chars.by_ref().skip(4).next() != Some('"') {
                 return Err(Error::new(
                     ErrorKind::InvalidData,
-                    "File is not a Zest index.",
+                    "File is not a Zest index",
                 ));
             }
 
@@ -49,6 +49,13 @@ pub fn load_index(path: FilePath) -> Result<HashMap<FileName, FilePath>, Error> 
             }
 
             index.insert(filename, filepath);
+        }
+
+        if index.is_empty() {
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                "File is not a Zest index",
+            ));
         }
 
         Ok(index)
