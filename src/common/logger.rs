@@ -61,7 +61,7 @@ impl Logger {
                 i += 1;
             }
 
-            let file = File::create(format!("./zest-log-{}.txt", i));
+            let file = File::create(format!("./zest-{}.log", i));
 
             if let Err(err) = file {
                 panic!("*** An error occured while creating a file for the logger: {}", err);

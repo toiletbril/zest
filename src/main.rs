@@ -12,7 +12,7 @@ use toiletcli::flags::{parse_flags, Flag, FlagType};
 mod common;
 mod server;
 mod http;
-mod music;
+mod api;
 
 use server::dispatcher::start_dispatcher;
 use server::router;
@@ -24,6 +24,8 @@ const DEFAULT_ADDRESS: &str = "localhost";
 const DEFAULT_PORT: u32 = 6969;
 const DEFAULT_THREAD_COUNT: usize = 8;
 const DEFAULT_UTC: u64 = 0;
+
+pub type Config = String;
 
 fn entry() -> Result<(), String> {
     let mut args = args();
@@ -83,18 +85,23 @@ fn entry() -> Result<(), String> {
     }
 
     if args.len() < 1 {
-        return Err("Not enough arguments\nTry '--help' for more information.".to_string());
+        return Err("Not enough arguments.\nTry '--help' for more information".to_string());
     }
 
     println!("Running Zest web-server, version {} (c) toiletbril <https://github.com/toiletbril>", VERSION);
 
     match args[0].as_str() {
         "serve" => {
+            if args.len() < 2 {
+                return Err(format!("Not enough arguments.\nUSAGE: {} serve <directory>\nTry '--help' for more information", program_name));
+            }
+
+            let config = args[1].to_owned();
+
             let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag)));
             let logger_clone = logger.clone();
 
             log!(logger, "Starting the dispatcher...");
-
             let _ = Builder::new()
                 .name("dispatcher".to_string())
                 .spawn(move || {
@@ -102,6 +109,7 @@ fn entry() -> Result<(), String> {
                         format!("{address}:{port}"),
                         thread_count,
                         logger_clone,
+                        config,
                         router::route,
                     );
                 });
