@@ -4,3 +4,6 @@
 - Verbose mode for logger.
 - Date for logger (impossible).
 - Http versioning.
+- Endpoints documentation, logging info.
+- Investigate "bad headers" error.
+- Authorization.
