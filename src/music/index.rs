@@ -102,11 +102,11 @@ fn slugify(input: String) -> String {
 fn make_index_file(index: HashMap<FileName, FilePath>) -> Result<String, Error> {
     let mut i = 0;
 
-    while Path::new(format!("./zest-{}.index", i).as_str()).exists() {
+    while Path::new(format!("./zest-index-{}", i).as_str()).exists() {
         i += 1;
     }
 
-    let file = File::create(format!("./zest-{}.index", i))?;
+    let file = File::create(format!("./zest-index-{}", i))?;
     let mut writer = BufWriter::new(file);
 
     let mut files = index.iter();
@@ -118,5 +118,5 @@ fn make_index_file(index: HashMap<FileName, FilePath>) -> Result<String, Error> 
         writer.write_all(b"\"\n")?;
     }
 
-    Ok(format!("./zest-{}.index", i))
+    Ok(format!("./zest-index-{}", i))
 }

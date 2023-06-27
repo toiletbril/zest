@@ -135,7 +135,7 @@ fn entry() -> Result<(), String> {
 
             match make_index(config.to_owned()) {
                 Err(err) => println!("Could not index '{}': {}", config, err),
-                Ok(filename) => println!("Successfully traversed '{}' -> '{}'.", config, filename)
+                Ok(filename) => println!("Successfully traversed '{}', generated index file '{}'.", config, filename)
             }
 
             Ok(())
