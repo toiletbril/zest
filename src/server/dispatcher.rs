@@ -5,8 +5,8 @@ use crate::common::Am;
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
 use crate::log;
-use crate::logger::Logger;
-use crate::thread::ThreadPool;
+use crate::common::logger::{Logger, Log};
+use crate::common::threads::ThreadPool;
 
 /// Starts the dispatcher, creating `ThreadPool` with N threads to handle incoming connections.
 /// Job is the function to execute on incoming connections.

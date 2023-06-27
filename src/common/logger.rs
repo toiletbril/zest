@@ -1,6 +1,13 @@
-use std::io::Error;
+use std::fs::{File};
+use std::io::{Error, Write};
+use std::path::Path;
 use std::thread::current;
 use std::time::SystemTime;
+
+pub trait Log {
+    fn log(&mut self, message: String);
+    fn flush(&mut self) -> Result<(), Error>;
+}
 
 #[macro_export]
 macro_rules! flush {
@@ -36,30 +43,48 @@ macro_rules! log {
     };
 }
 
-pub trait Log {
-    fn log(&self, logger: &mut Logger, message: String);
-}
-
 type LogQueue = Vec<String>;
 
 pub struct Logger {
     index: usize,
     queue: LogQueue,
     utc: u64,
+    file: Option<File>,
 }
 
 impl Logger {
-    pub fn new(utc: u64) -> Self {
+    pub fn new(utc: u64, use_file: bool) -> Self {
+        let mut i = 0;
+
+        let file = if use_file {
+            while Path::new(format!("./zest-log-{}.txt", i).as_str()).exists() {
+                i += 1;
+            }
+
+            let file = File::create(format!("./zest-log-{}.txt", i));
+
+            if let Err(err) = file {
+                panic!("*** An error occured while creating a file for the logger: {}", err);
+            }
+
+            Some(file.unwrap())
+        } else {
+            None
+        };
+
         return Logger {
             index: 1,
             queue: vec![],
             utc: utc,
+            file: file,
         };
     }
+}
 
-    pub fn log(&mut self, message: String) {
+impl Log for Logger {
+    fn log(&mut self, message: String) {
         self.queue.push(format!(
-            "{} [{}] {:?} > {}: {}",
+            "{} [{}] {:?} -> {}: {}",
             self.index,
             time!(self.utc),
             current().id(),
@@ -69,9 +94,11 @@ impl Logger {
         self.index += 1;
     }
 
-    pub fn flush(&mut self) -> Result<(), Error> {
+    fn flush(&mut self) -> Result<(), Error> {
         if !&self.queue.is_empty() {
             for entry in &self.queue {
+                self.file.as_ref()
+                    .map(|mut x| write!(x, "{}\n", entry));
                 println!("{}", entry);
             }
             self.queue.clear();

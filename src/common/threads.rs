@@ -2,9 +2,9 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::{Builder, JoinHandle};
 
+use crate::common::logger::{Log, Logger};
 use crate::common::Am;
 use crate::log;
-use crate::logger::Logger;
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 

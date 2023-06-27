@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     fmt::Display,
     io::{Error, Write},
 };
@@ -10,7 +9,7 @@ use super::connection::HttpConnection;
 pub struct HttpResponse<'a> {
     status: u16,
     status_message: String,
-    headers: Option<HashMap<String, String>>,
+    headers: Option<String>,
     body: Option<&'a [u8]>,
 }
 
@@ -25,10 +24,8 @@ impl<'a> HttpResponse<'a> {
     }
 
     pub fn set_header<K: Display, V: Display>(mut self, key: K, value: V) -> Self {
-        let mut headers = self.headers.take().unwrap_or(HashMap::new());
-
-        headers.insert(key.to_string(), value.to_string());
-
+        let mut headers = self.headers.take().unwrap_or_default();
+        headers.push_str(format!("{}: {}\r\n", key, value).as_str());
         self.headers = Some(headers);
         self
     }
@@ -42,9 +39,7 @@ impl<'a> HttpResponse<'a> {
         connection.write_all(format!("HTTP/1.1 {} {}\r\n", self.status, self.status_message).as_bytes())?;
 
         if let Some(headers) = self.headers.take() {
-            for (key, value) in headers.iter() {
-                connection.write_all(format!("{}: {}\r\n", key, value).as_bytes())?;
-            }
+            connection.write_all(headers.as_bytes())?;
         }
 
         connection.write_all(b"\r\n")?;
