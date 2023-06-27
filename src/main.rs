@@ -12,11 +12,14 @@ use toiletcli::flags::{parse_flags, Flag, FlagType};
 mod common;
 mod server;
 mod http;
-mod api;
+mod music;
 
 use server::dispatcher::start_dispatcher;
 use server::router;
 use common::logger::{Logger, Log};
+
+use crate::music::endpoint::init_music_index;
+use crate::music::index::make_index;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -24,8 +27,6 @@ const DEFAULT_ADDRESS: &str = "localhost";
 const DEFAULT_PORT: u32 = 6969;
 const DEFAULT_THREAD_COUNT: usize = 8;
 const DEFAULT_UTC: u64 = 0;
-
-pub type Config = String;
 
 fn entry() -> Result<(), String> {
     let mut args = args();
@@ -70,9 +71,10 @@ fn entry() -> Result<(), String> {
 
     if show_help {
         println!("USAGE: {} [-options] <subcommand>", program_name);
-        println!("Multipurpose web-server.");
+        println!("Music-streaming web-server.");
         println!("");
-        println!("SUBCOMMANDS:  serve <directory> \tServe the directory. Does not do anything YET.");
+        println!("SUBCOMMANDS:  serve <index file>     \tServe the music.");
+        println!("              index <directory>      \tIndex a directory and make the index file.");
         println!("");
         println!("OPTIONS:      -p, --port <port>      \tSet server's port.");
         println!("              -a, --address <adress> \tSet server's address.");
@@ -93,10 +95,13 @@ fn entry() -> Result<(), String> {
     match args[0].as_str() {
         "serve" => {
             if args.len() < 2 {
-                return Err(format!("Not enough arguments.\nUSAGE: {} serve <directory>\nTry '--help' for more information", program_name));
+                return Err(format!("Not enough arguments.\nUSAGE: {} serve <index file>\nTry '--help' for more information", program_name));
             }
 
-            let config = args[1].to_owned();
+            let path = args[1].to_owned();
+            if let Err(err) = init_music_index(path) {
+                return Err(err);
+            }
 
             let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag)));
             let logger_clone = logger.clone();
@@ -109,7 +114,6 @@ fn entry() -> Result<(), String> {
                         format!("{address}:{port}"),
                         thread_count,
                         logger_clone,
-                        config,
                         router::route,
                     );
                 });
@@ -120,8 +124,23 @@ fn entry() -> Result<(), String> {
                 let _ = flush!(logger);
                 sleep(Duration::from_micros(100));
             }
-        }
-        _ => Err(format!("Unknown command '{}'", args[1])),
+        },
+        "index" => {
+            if args.len() < 2 {
+                return Err(format!("Not enough arguments.\nUSAGE: {} index <directory>\nTry '--help' for more information", program_name));
+            }
+
+            let config = args[1].to_owned();
+            println!("Traversing '{}'...", config);
+
+            match make_index(config.to_owned()) {
+                Err(err) => println!("Could not index '{}': {}", config, err),
+                Ok(filename) => println!("Successfully traversed '{}' -> '{}'.", config, filename)
+            }
+
+            Ok(())
+        },
+        _ => Err(format!("Unknown subcommand '{}'.\nTry '--help' for more information", args[0])),
     }
 }
 
