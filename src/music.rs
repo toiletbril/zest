@@ -1,18 +1,19 @@
 use std::error::Error;
 use std::fs::File;
-use std::io::{Read, Seek, SeekFrom, Write};
+use std::io::{Read, Seek, SeekFrom};
 
 use crate::common::Am;
-use crate::http::HttpConnection;
+use crate::http::connection::HttpConnection;
+use crate::http::response::HttpResponse;
 use crate::{log, Logger};
 
 // Temporal file for testing :3c
 // You can get this track at <https://www.youtube.com/watch?v=hqXDCTJFutY>
 const FILE: &str = "01 Friday Night Clubbers Die By The Sword.mp3";
 
-const CHUNK_SIZE: usize = 1024 * 1024; // 1 MB
+const CHUNK_SIZE: usize = 1024 * 512; // 512 KB
 
-pub fn music_handler(
+pub fn music_handler<'a>(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
 ) -> Result<(), Box<dyn Error>> {
@@ -21,31 +22,24 @@ pub fn music_handler(
         .and_then(|x| x.parse::<usize>().ok())
         .unwrap_or(0);
 
-    if let Err(err) = serve_music_chunk(connection, logger, chunk) {
-        Err(Box::new(err))
-    } else {
-        Ok(())
-    }
+    Ok(serve_music_chunk(connection, logger, chunk)?)
 }
 
-pub fn serve_music_chunk(
+pub fn serve_music_chunk<'a>(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
     chunk_index: usize,
 ) -> Result<(), std::io::Error> {
     let mut file = File::open(&FILE)?;
-    let max_size = if let Ok(meta) = file.metadata() {
-        meta.len() as usize
-    } else {
-        0
-    };
+    let max_size = file.metadata()
+        .map(|x| x.len())
+        .unwrap_or(0) as usize;
 
-    let start_pos = chunk_index * CHUNK_SIZE as usize;
+    let start_pos = chunk_index * CHUNK_SIZE;
 
     if max_size < start_pos {
-        connection.write_all(b"HTTP/1.1 204 No Content\r\n\r\n")?;
-        connection.flush()?;
-        return Ok(());
+        return HttpResponse::new(416, "Range Not Satisfiable")
+            .send(connection);
     }
 
     file.seek(SeekFrom::Start(start_pos as u64))?;
@@ -54,7 +48,6 @@ pub fn serve_music_chunk(
     let bytes_read = match file.read(&mut buffer[..CHUNK_SIZE as usize]) {
         Ok(bytes_read) => bytes_read,
         Err(err) => {
-            connection.write_all(b"HTTP/1.1 500 Internal Server Error\r\n\r\n")?;
             return Err(err);
         }
     };
@@ -62,11 +55,9 @@ pub fn serve_music_chunk(
     log!(logger,
         "Serving a chunk '{}' [{}..{}].", FILE, start_pos, start_pos + CHUNK_SIZE);
 
-    connection.write_all(b"HTTP/1.1 200 OK\r\n")?;
-    connection.write_all(b"Content-Type: audio/mpeg\r\n")?;
-    connection.write_all(format!("Content-Length: {}\r\n\r\n", bytes_read).as_bytes())?;
-    connection.write_all(&buffer[..bytes_read])?;
-    connection.flush()?;
-
-    Ok(())
+    HttpResponse::new(200, "OK")
+        .set_header("Content-Type", "audio/mpeg")
+        .set_header("Content-Length", bytes_read)
+        .set_body(&buffer[..bytes_read])
+        .send(connection)
 }

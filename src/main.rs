@@ -92,6 +92,7 @@ fn entry() -> Result<(), String> {
             let logger_clone = logger.clone();
 
             log!(logger, "Starting the dispatcher...");
+
             let _ = Builder::new()
                 .name("dispatcher".to_string())
                 .spawn(move || {
