@@ -7,16 +7,16 @@ use crate::{
         response::HttpResponse,
     },
     common::logger::Logger,
-    api::music::music_handler, Config,
+    music::endpoint::{list_handler, chunk_handler}
 };
 
 pub fn route<'a>(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
-    config: Config
 ) -> Result<(), Box<dyn Error>> {
     Ok(match (connection.path().as_str(), connection.method()) {
-        ("/api/v1/music", HttpMethod::GET) => music_handler(connection, logger, config),
+        ("/api/v1/music", HttpMethod::GET) => chunk_handler(connection, logger),
+        ("/api/v1/music/list", HttpMethod::GET) => list_handler(connection, logger),
         _ => not_found().send(connection),
     }?)
 }

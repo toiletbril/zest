@@ -4,7 +4,7 @@ use std::net::{TcpListener, TcpStream};
 use crate::common::Am;
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
-use crate::{log, Config};
+use crate::{log};
 use crate::common::logger::{Logger, Log};
 use crate::common::threads::ThreadPool;
 
@@ -17,8 +17,7 @@ pub fn start_dispatcher<'a>(
     address: String,
     thread_count: usize,
     logger: Am<Logger>,
-    config: Config,
-    job: fn(&mut HttpConnection, &Am<Logger>, Config) -> Result<(), Box<dyn Error>>,
+    job: fn(&mut HttpConnection, &Am<Logger>) -> Result<(), Box<dyn Error>>,
 ) -> Result<(), std::io::Error> {
     log!(logger, "Binding to <http://{address}>...");
     let listener = TcpListener::bind(address)?;
@@ -31,10 +30,9 @@ pub fn start_dispatcher<'a>(
                 log!(logger, "Received a connection '{}'", stream.peer_addr()?);
 
                 let logger_clone = logger.clone();
-                let config_clone = config.clone();
 
                 thread_pool.enqueue(move || {
-                    let _ =  handle_stream(stream, logger_clone, config_clone, job);
+                    let _ =  handle_stream(stream, logger_clone, job);
                 });
             },
             Err(err) => {
@@ -51,15 +49,14 @@ pub fn start_dispatcher<'a>(
 fn handle_stream<'a>(
     stream: TcpStream,
     logger: Am<Logger>,
-    config: Config,
-    job: fn(&mut HttpConnection, &Am<Logger>, Config) -> Result<(), Box<dyn Error>>,
+    job: fn(&mut HttpConnection, &Am<Logger>) -> Result<(), Box<dyn Error>>,
 ) -> Result<(), Box<dyn Error>> {
     let connection = HttpConnection::new(stream);
 
     if let Ok(mut connection) = connection {
         log!(logger, "Handling {:?}", connection);
 
-        if let Err(err) = job(&mut connection, &logger, config) {
+        if let Err(err) = job(&mut connection, &logger) {
             HttpResponse::new(500, "Internal Server Error")
                 .send(&mut connection)?;
             log!(logger, "*** An internal error has occured: {}", err);
