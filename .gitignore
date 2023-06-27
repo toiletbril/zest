@@ -2,3 +2,4 @@
 target/
 *.mp3
 *.html
+zest-*.log
