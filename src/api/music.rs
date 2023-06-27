@@ -4,32 +4,31 @@ use std::io::{Error, Read, Seek, SeekFrom};
 use crate::common::Am;
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
-use crate::{log, Logger, Log};
-
-// Temporal file for testing :3c
-// You can get this track at <https://www.youtube.com/watch?v=hqXDCTJFutY>
-const FILE: &str = "01 Friday Night Clubbers Die By The Sword.mp3";
+use crate::{log, Logger, Log, Config};
 
 const CHUNK_SIZE: usize = 1024 * 512; // 512 KB
 
 pub fn music_handler<'a>(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
+    config: Config
 ) -> Result<(), Error> {
     let chunk: usize = connection.params()
         .and_then(|x| x.get("chunk"))
         .and_then(|x| x.parse::<usize>().ok())
         .unwrap_or(0);
 
-    serve_music_chunk(connection, logger, chunk)
+    let path = config;
+    serve_music_chunk(connection, logger, chunk, path)
 }
 
 pub fn serve_music_chunk<'a>(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
     chunk_index: usize,
+    path: String
 ) -> Result<(), Error> {
-    let mut file = File::open(&FILE)?;
+    let mut file = File::open(&path)?;
     let max_size = file.metadata()
         .map(|x| x.len())
         .unwrap_or(0) as usize;
@@ -52,7 +51,7 @@ pub fn serve_music_chunk<'a>(
     };
 
     log!(logger,
-        "Serving a chunk '{}' [{}..{}] to {:?}.", FILE, start_pos, start_pos + CHUNK_SIZE, connection.stream());
+        "Serving a chunk '{}' [{}..{}] to {:?}.", path, start_pos, start_pos + CHUNK_SIZE, connection.stream());
 
     HttpResponse::new(200, "OK")
         .set_header("Content-Type", "audio/mpeg")
