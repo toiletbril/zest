@@ -10,15 +10,13 @@ use toiletcli::flags;
 use toiletcli::flags::{parse_flags, Flag, FlagType};
 
 mod common;
-mod dispatcher;
+mod server;
 mod http;
-mod logger;
 mod music;
-mod thread;
-mod router;
 
-use dispatcher::start_dispatcher;
-use logger::Logger;
+use server::dispatcher::start_dispatcher;
+use server::router;
+use common::logger::{Logger, Log};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -35,6 +33,7 @@ fn entry() -> Result<(), String> {
     let mut address_flag;
     let mut thread_count_flag;
     let mut utc_flag;
+    let mut log_file_flag;
 
     let mut show_help;
 
@@ -48,7 +47,9 @@ fn entry() -> Result<(), String> {
         port_flag: StringFlag,
         ["-p", "--port"],
         address_flag: StringFlag,
-        ["-a", "--address"]
+        ["-a", "--address"],
+        log_file_flag: BoolFlag,
+        ["-l", "--log-file"]
     );
 
     let args = parse_flags(&mut args, &mut flags)?;
@@ -75,6 +76,7 @@ fn entry() -> Result<(), String> {
         println!("              -a, --address <adress> \tSet server's address.");
         println!("              -t, --threads <count>  \tThreads to create.");
         println!("              -u, --utc <hours>      \tUTC adjustment for logger.");
+        println!("              -l, --log-file         \tCreate a log file.");
         println!("");
         println!("{} (c) toiletbril <https://github.com/toiletbril>", VERSION);
         return Ok(());
@@ -88,7 +90,7 @@ fn entry() -> Result<(), String> {
 
     match args[0].as_str() {
         "serve" => {
-            let logger = Arc::new(Mutex::new(Logger::new(utc)));
+            let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag)));
             let logger_clone = logger.clone();
 
             log!(logger, "Starting the dispatcher...");

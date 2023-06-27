@@ -1,11 +1,10 @@
-use std::error::Error;
 use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Error, Read, Seek, SeekFrom};
 
 use crate::common::Am;
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
-use crate::{log, Logger};
+use crate::{log, Logger, Log};
 
 // Temporal file for testing :3c
 // You can get this track at <https://www.youtube.com/watch?v=hqXDCTJFutY>
@@ -16,20 +15,20 @@ const CHUNK_SIZE: usize = 1024 * 512; // 512 KB
 pub fn music_handler<'a>(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), Error> {
     let chunk: usize = connection.params()
         .and_then(|x| x.get("chunk"))
         .and_then(|x| x.parse::<usize>().ok())
         .unwrap_or(0);
 
-    Ok(serve_music_chunk(connection, logger, chunk)?)
+    serve_music_chunk(connection, logger, chunk)
 }
 
 pub fn serve_music_chunk<'a>(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
     chunk_index: usize,
-) -> Result<(), std::io::Error> {
+) -> Result<(), Error> {
     let mut file = File::open(&FILE)?;
     let max_size = file.metadata()
         .map(|x| x.len())
@@ -53,7 +52,7 @@ pub fn serve_music_chunk<'a>(
     };
 
     log!(logger,
-        "Serving a chunk '{}' [{}..{}].", FILE, start_pos, start_pos + CHUNK_SIZE);
+        "Serving a chunk '{}' [{}..{}] to {:?}.", FILE, start_pos, start_pos + CHUNK_SIZE, connection.stream());
 
     HttpResponse::new(200, "OK")
         .set_header("Content-Type", "audio/mpeg")
