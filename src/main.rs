@@ -107,7 +107,8 @@ fn entry() -> Result<(), String> {
             let logger_clone = logger.clone();
 
             log!(logger, "Starting the dispatcher...");
-            let _ = Builder::new()
+
+            Builder::new()
                 .name("dispatcher".to_string())
                 .spawn(move || {
                     let _ = start_dispatcher(
@@ -116,7 +117,7 @@ fn entry() -> Result<(), String> {
                         logger_clone,
                         router::route,
                     );
-                });
+                }).map_err(|err| err.to_string())?;
 
             log!(logger, "Starting the logger...");
 
