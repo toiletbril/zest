@@ -1,4 +1,4 @@
-use std::fs::{File};
+use std::fs::File;
 use std::io::{Error, Write};
 use std::path::Path;
 use std::thread::current;
@@ -26,7 +26,8 @@ macro_rules! time {
         let _duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("Should be able to get time")
-            .as_secs() + $utc * 3600;
+            .as_secs()
+            + $utc * 3600;
         let _secs = _duration % 60;
         let _mins = (_duration / 60) % 60;
         let _hrs = (_duration / 3600) % 24;
@@ -64,7 +65,10 @@ impl Logger {
             let file = File::create(format!("./zest-{}.log", i));
 
             if let Err(err) = file {
-                panic!("*** An error occured while creating a file for the logger: {}", err);
+                panic!(
+                    "*** An error occured while creating a file for the logger: {}",
+                    err
+                );
             }
 
             Some(file.unwrap())
@@ -88,7 +92,9 @@ impl Log for Logger {
             self.index,
             time!(self.utc),
             current().id(),
-            current().name().map_or("MAIN".to_string(), |x| x.to_uppercase()),
+            current()
+                .name()
+                .map_or("MAIN".to_string(), |x| x.to_uppercase()),
             message
         ));
         self.index += 1;

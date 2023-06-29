@@ -1,12 +1,12 @@
 use std::error::Error;
 use std::net::{TcpListener, TcpStream};
 
+use crate::common::logger::{Log, Logger};
+use crate::common::threads::ThreadPool;
 use crate::common::util::Am;
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
-use crate::{log};
-use crate::common::logger::{Logger, Log};
-use crate::common::threads::ThreadPool;
+use crate::log;
 
 type DispatcherJob = fn(&mut HttpConnection, &Am<Logger>) -> Result<(), Box<dyn Error>>;
 
@@ -25,7 +25,9 @@ pub fn start_dispatcher<'a>(
     let listener = TcpListener::bind(address)?;
     let thread_pool = ThreadPool::new(thread_count, logger.clone());
 
-    log!(logger, "Started. Available threads: {}.", thread_pool.size());
+    log!(logger,
+        "Started. Available threads: {}.", thread_pool.size());
+
     for connection in listener.incoming() {
         match connection {
             Ok(stream) => {
@@ -34,11 +36,12 @@ pub fn start_dispatcher<'a>(
                 let logger_clone = logger.clone();
 
                 thread_pool.enqueue(move || {
-                    let _ =  handle_stream(stream, logger_clone, job);
+                    let _ = handle_stream(stream, logger_clone, job);
                 });
-            },
+            }
             Err(err) => {
-                log!(logger, "*** An error has occured while receiving stream: {}", err);
+                log!(logger,
+                    "*** An error has occured while receiving stream: {}", err);
             }
         }
     }
@@ -64,16 +67,20 @@ fn handle_stream<'a>(
                 .send(&mut connection)?;
 
             log!(logger, "*** An internal error has occured: {}", err);
+
             Err(err)
         } else {
             log!(logger, "Closing {:?}", connection.stream());
-            drop(connection);
 
+            drop(connection);
             Ok(())
         }
     } else {
         let err = connection.unwrap_err();
-        log!(logger, "*** An error has occured while parsing connection: {}", err);
+
+        log!(logger,
+            "*** An error has occured while parsing connection: {}", err);
+
         Err(Box::new(err))
     }
 }

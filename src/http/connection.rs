@@ -1,4 +1,4 @@
-use std::{io::{Error, ErrorKind, Read, Write}};
+use std::io::{Error, ErrorKind, Read, Write};
 use std::net::TcpStream;
 
 #[repr(u8)]

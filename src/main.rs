@@ -10,13 +10,13 @@ use toiletcli::flags;
 use toiletcli::flags::{parse_flags, Flag, FlagType};
 
 mod common;
-mod server;
 mod http;
 mod music;
+mod server;
 
+use common::logger::{Log, Logger};
 use server::dispatcher::start_dispatcher;
 use server::router;
-use common::logger::{Logger, Log};
 
 use crate::music::index::init_music_index;
 use crate::music::index::make_index;
@@ -90,7 +90,10 @@ fn entry() -> Result<(), String> {
         return Err("Not enough arguments.\nTry '--help' for more information".to_string());
     }
 
-    println!("Running Zest web-server, version {} (c) toiletbril <https://github.com/toiletbril>", VERSION);
+    println!(
+        "Running Zest web-server, version {} (c) toiletbril <https://github.com/toiletbril>",
+        VERSION
+    );
 
     match args[0].as_str() {
         "serve" => {
@@ -98,10 +101,7 @@ fn entry() -> Result<(), String> {
                 return Err(format!("Not enough arguments.\nUSAGE: {} serve <index file>\nTry '--help' for more information", program_name));
             }
 
-            let path = args[1].to_owned();
-            if let Err(err) = init_music_index(path) {
-                return Err(err);
-            }
+            init_music_index(args[1].to_owned())?;
 
             let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag)));
             let logger_clone = logger.clone();
@@ -124,7 +124,7 @@ fn entry() -> Result<(), String> {
                 let _ = flush!(logger);
                 sleep(Duration::from_micros(100));
             }
-        },
+        }
         "index" => {
             if args.len() < 2 {
                 return Err(format!("Not enough arguments.\nUSAGE: {} index <directory>\nTry '--help' for more information", program_name));
@@ -135,12 +135,18 @@ fn entry() -> Result<(), String> {
 
             match make_index(config.to_owned()) {
                 Err(err) => println!("Could not index '{}': {}", config, err),
-                Ok(filename) => println!("Successfully traversed '{}', generated index file '{}'.", config, filename)
+                Ok(filename) => println!(
+                    "Successfully traversed '{}', generated index file '{}'.",
+                    config, filename
+                ),
             }
 
             Ok(())
-        },
-        _ => Err(format!("Unknown subcommand '{}'.\nTry '--help' for more information", args[0])),
+        }
+        _ => Err(format!(
+            "Unknown subcommand '{}'.\nTry '--help' for more information",
+            args[0]
+        )),
     }
 }
 

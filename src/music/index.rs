@@ -2,7 +2,7 @@ use crate::common::util::{FileName, FilePath, IndexMap};
 use std::{
     collections::HashMap,
     fs::{self, File},
-    io::{BufReader, BufWriter, Error, Read, Write, ErrorKind},
+    io::{BufReader, BufWriter, Error, ErrorKind, Read, Write},
     path::Path,
     sync::{Arc, Once, RwLock},
 };
@@ -31,9 +31,7 @@ pub fn init_music_index(path: String) -> Result<(), String> {
         INIT_MUSIC.call_once(move || {
             if STATIC_MUSIC_INDEX.is_err() {
                 match load_index(path) {
-                    Ok(index) => {
-                        STATIC_MUSIC_INDEX = Ok(Arc::new(RwLock::new(index)))
-                    }
+                    Ok(index) => STATIC_MUSIC_INDEX = Ok(Arc::new(RwLock::new(index))),
                     Err(err) => STATIC_MUSIC_INDEX = Err(err.to_string()),
                 }
             }
@@ -49,7 +47,7 @@ pub fn get_music_index() -> Arc<RwLock<MusicIndex>> {
     unsafe { STATIC_MUSIC_INDEX.as_ref().unwrap().clone() }
 }
 
-//{"path": "...", "entries": [ { "...": "..." }, ...] }
+// {"path": "...", "entries": [ { "...": "..." }, ...] }
 // FIXME: This will fucking explode with large files
 fn load_index(path: String) -> Result<MusicIndex, Error> {
     let file = File::open(path)?;
@@ -80,17 +78,17 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
             Err(_) => continue,
             Ok(c) => {
                 match c.as_str() {
-                    "{"  => {},
-                    "}"  => {},
-                    ":"  => {},
-                    ","  => {},
-                    "["  => {
+                    "{" => {}
+                    "}" => {}
+                    ":" => {}
+                    "," => {}
+                    "[" => {
                         if !in_quotes {
                             in_array = true;
                             read_key = false;
                         }
-                    },
-                    "]"  => {
+                    }
+                    "]" => {
                         if !in_quotes {
                             in_array = false;
                         }
@@ -111,12 +109,12 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
                             string_buf.clear();
                             in_quotes = false;
                         }
-                    },
+                    }
                     " " => {
                         if in_quotes {
                             string_buf.extend(c.chars());
                         }
-                    },
+                    }
                     _ => {
                         string_buf.extend(c.chars());
                     }
@@ -132,7 +130,10 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
     }
 
     if index_path.is_empty() || entries.is_empty() {
-        return Err(Error::new(ErrorKind::InvalidData, "File is not a zest index"));
+        return Err(Error::new(
+            ErrorKind::InvalidData,
+            "File is not a zest index",
+        ));
     }
 
     Ok(MusicIndex {
@@ -145,7 +146,10 @@ pub fn make_index(path: FilePath) -> Result<String, Error> {
     make_index_file(recurse_music(&path, None)?, path)
 }
 
-fn recurse_music(path: &String, path_len: Option<usize>) -> Result<HashMap<FileName, FilePath>, Error> {
+fn recurse_music(
+    path: &String,
+    path_len: Option<usize>,
+) -> Result<HashMap<FileName, FilePath>, Error> {
     let mut dir = fs::read_dir(path.to_string())?;
     let mut index: HashMap<FileName, FilePath> = HashMap::new();
 

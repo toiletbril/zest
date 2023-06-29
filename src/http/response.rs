@@ -36,8 +36,7 @@ impl<'a> HttpResponse<'a> {
     }
 
     pub fn set_json_body<S: AsRef<str>>(self, body: &'a S) -> Self {
-        self
-            .set_header("Content-Type", "application/json; charset=utf-8")
+        self.set_header("Content-Type", "application/json; charset=utf-8")
             .set_body(body.as_ref().as_bytes())
     }
 
@@ -47,7 +46,9 @@ impl<'a> HttpResponse<'a> {
     }
 
     pub fn send(mut self, connection: &mut HttpConnection) -> Result<(), Error> {
-        connection.write_all(format!("HTTP/1.1 {} {}\r\n", self.status, self.status_message).as_bytes())?;
+        connection.write_all(
+            format!("HTTP/1.1 {} {}\r\n", self.status, self.status_message).as_bytes(),
+        )?;
 
         if let Some(headers) = self.headers.take() {
             connection.write_all(headers.as_bytes())?;
