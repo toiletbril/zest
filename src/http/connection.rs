@@ -1,4 +1,4 @@
-use std::io::{Error, ErrorKind, Read, Write};
+use std::{io::{Error, ErrorKind, Read, Write}};
 use std::net::TcpStream;
 
 #[repr(u8)]
@@ -39,6 +39,8 @@ impl Write for HttpConnection {
 
 use std::collections::HashMap;
 use std::str;
+
+use crate::common::util::url_decode;
 
 type Headers = HashMap<String, String>;
 type Parameters = HashMap<String, String>;
@@ -109,49 +111,6 @@ fn parse_http_headers(
     let message = format!("Malformed headers.");
     let err = std::io::Error::new(ErrorKind::InvalidData, message);
     return Err(err);
-}
-
-#[allow(dead_code)]
-pub fn url_encode(input: &str) -> String {
-    let mut encoded = String::new();
-    for byte in input.bytes() {
-        match byte {
-            b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z' | b'-' | b'.' | b'_' | b'~' => {
-                encoded.push(byte as char);
-            }
-            _ => {
-                encoded.push('%');
-                encoded.push_str(&format!("{:02X}", byte));
-            }
-        }
-    }
-    encoded
-}
-
-pub fn url_decode(input: &str) -> String {
-    let mut decoded = String::new();
-    let mut bytes = input.bytes();
-    while let Some(byte) = bytes.next() {
-        match byte {
-            b'%' => {
-                if let (Some(hex1), Some(hex2)) = (bytes.next(), bytes.next()) {
-                    if let Ok(decoded_byte) = u8::from_str_radix(&format!("{}{}", hex1 as char, hex2 as char), 16) {
-                        decoded.push(decoded_byte as char);
-                    } else {
-                        decoded.push('%');
-                        decoded.push(hex1 as char);
-                        decoded.push(hex2 as char);
-                    }
-                } else {
-                    decoded.push('%');
-                }
-            }
-            _ => {
-                decoded.push(byte as char);
-            }
-        }
-    }
-    decoded
 }
 
 fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, Option<Parameters>), Error> {
