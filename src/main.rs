@@ -80,7 +80,7 @@ fn entry() -> Result<(), String> {
         println!("              -a, --address <adress> \tSet server's address.");
         println!("              -t, --threads <count>  \tThreads to create.");
         println!("              -u, --utc <hours>      \tUTC adjustment for logger.");
-        println!("              -l, --log-file         \tCreate a log file.");
+        println!("              -l, --log-file         \tWrite logs to a log file.");
         println!("");
         println!("{} (c) toiletbril <https://github.com/toiletbril>", VERSION);
         return Ok(());
