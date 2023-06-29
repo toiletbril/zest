@@ -71,7 +71,7 @@ OPTIONS:      -p, --port <port>      	Set server's port.
 
 ## Endpoints
 
-All endpoints in this API are prefixed with `/api/v1/music`.
+All endpoints the API are prefixed with `/api/v1/music`.
 
 ### Chunk of music file
 
@@ -92,7 +92,7 @@ Returns a specified chunk of a music file.
 Example Request:
 ```http
 GET /api/v1/music/get?name=HelloWorld&chunk=2 HTTP/1.1
-Host: your-api-domain.com
+Origin: some-domain.com
 ```
 
 Example Response:
@@ -111,6 +111,12 @@ Returns a list of all available music track names.
 - Response:
     - `Content-Type`: `application/json`
     - Body: An array containing all available music track names.
+
+  Example Request:
+```http
+GET /api/v1/music/all HTTP/1.1
+Origin: some-domain.com
+```
 
 Example response:
 ```http
