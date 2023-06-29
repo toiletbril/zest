@@ -149,7 +149,7 @@ fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, Option<Parameters
             }
             let v = kv.next().unwrap_or_default();
 
-            parameters.insert(url_decode(k.unwrap()), url_decode(v));
+            parameters.insert(url_decode(k.unwrap()).to_lowercase(), url_decode(v));
         }
 
         Some(parameters)
@@ -162,7 +162,7 @@ fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, Option<Parameters
 
 fn parse_header_line(line: &str, headers: &mut HashMap<String, String>) -> Result<(), Error> {
     if let Some((key, value)) = line.split_once(':') {
-        headers.insert(key.to_owned(), value.trim().to_owned());
+        headers.insert(key.to_lowercase().to_owned(), value.trim().to_owned());
         Ok(())
     } else {
         let message = "Invalid header line.";

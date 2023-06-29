@@ -35,6 +35,17 @@ impl<'a> HttpResponse<'a> {
         self
     }
 
+    pub fn set_json_body<S: AsRef<str>>(self, body: &'a S) -> Self {
+        self
+            .set_header("Content-Type", "application/json; charset=utf-8")
+            .set_body(body.as_ref().as_bytes())
+    }
+
+    pub fn mirror_host_origin(self, connection: &HttpConnection) -> Self {
+        let host = connection.headers().get("origin");
+        self.set_header("Access-Control-Allow-Origin", host.unwrap_or(&"*".to_string()))
+    }
+
     pub fn send(mut self, connection: &mut HttpConnection) -> Result<(), Error> {
         connection.write_all(format!("HTTP/1.1 {} {}\r\n", self.status, self.status_message).as_bytes())?;
 
