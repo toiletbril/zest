@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::{sync::{Arc, Mutex}, collections::HashMap, fmt::Display};
 
 pub type Am<T> = Arc<Mutex<T>>;
@@ -5,15 +7,25 @@ pub type FilePath = String;
 pub type FileName = String;
 pub type IndexMap = HashMap<FileName, FilePath>;
 
-pub fn escape_iter<I: Iterator<Item = impl Display>>(iter: I) -> Vec<String>
-{
-    let mut v = vec![];
 
-    for entry in iter {
-        v.push(url_encode(entry))
+pub fn escape_array<I: Iterator<Item = impl Display + AsRef<str>>>(iter: I) -> String
+{
+    let mut s = String::from("[");
+
+    let mut peekable = iter.peekable();
+
+    while let Some(entry) = peekable.next() {
+        s += "\"";
+        s += entry.as_ref();
+        s += "\"";
+        if peekable.peek().is_some() {
+            s+= ",";
+        }
     }
 
-    v
+    s += "]";
+
+    s
 }
 
 pub fn url_encode<S: Display>(input: S) -> String {
@@ -29,6 +41,7 @@ pub fn url_encode<S: Display>(input: S) -> String {
             }
         }
     }
+
     encoded
 }
 
@@ -56,5 +69,6 @@ pub fn url_decode<S: Display>(input: S) -> String {
             }
         }
     }
+
     decoded
 }
