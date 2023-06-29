@@ -3,4 +3,4 @@ target/
 test/
 *.mp3
 *.html
-zest-*.log
+zest-*.*
