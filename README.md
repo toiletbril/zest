@@ -81,9 +81,9 @@ Returns a specified chunk of a music file.
 - Endpoint: `/get`
 - Parameters:
   - `name` (string, required): The name of the music track.
-  - `chunk` (integer, default is 0): The index of the 512kb chunk of the music file.
+  - `chunk` (integer, default is 0): The index of the 512kb chunk.
 - Response:
-  - Content-Type: `audio/mpeg`
+  - `Content-Type`: `audio/mpeg`
   - Body: The chunk of the specified music file.
 - Errors:
   - `416 Requested Range Not Satisfiable`: When the specified `chunk` is out of range for the music file.
@@ -109,7 +109,7 @@ Returns a list of all available music track names.
 - Method: `GET`
 - Endpoint: `/all`
 - Response:
-    - Content-Type: application/json
+    - `Content-Type`: `application/json`
     - Body: An array containing all available music track names.
 
 Example response:
