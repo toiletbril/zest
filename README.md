@@ -2,12 +2,12 @@
 
 Music-streaming web-server.
 
-This projects is in very early state, and is pretty much a prototype. The main goal is an ability to stream music in chunks from all `mpeg` files from a folder and it's subfolders. The rest will be decided later.
+This project is in very early state, and is pretty much a prototype. The main goal is an ability to stream music in chunks from all `mp3` files of any bitrate from a folder and it's subfolders. The rest will be decided later.
 
 Initially built with no dependencies (and possibly not up to any of HTTP standarts). As I continue the development, dependencies will be listed in [`Cargo.toml`](./Cargo.toml).
 
 ## Limitations
-- Only `mp3` files is supported for now.
+- Only `mp3` files are supported for now.
 - As no SSL or authorization is planned yet, for real-world usage you will need to pair Zest with reverse proxy that supports everything you need.
 
 ## Building
