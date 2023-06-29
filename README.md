@@ -48,7 +48,7 @@ Running Zest web-server, version 0.4.0-unstable (c) toiletbril <https://github.c
 2 [18:13:16] ThreadId(1) -> MAIN: Starting the logger...
 3 [18:13:16] ThreadId(2) -> DISPATCHER: Binding to <http://localhost:1234>...
 4 [18:13:16] ThreadId(2) -> DISPATCHER: Started. Available threads: 16.
-```;
+```
 
 ### Help
 
