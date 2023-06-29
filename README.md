@@ -2,13 +2,13 @@
 
 Music-streaming web-server.
 
-The goal is an ability to stream music in chunks from all music files from a folder and it's subfolders.
+This projects is in very early state, and is pretty much a prototype. The main goal is an ability to stream music in chunks from all `mpeg` files from a folder and it's subfolders. The rest will be decided later.
 
 Initially built with no dependencies (and possibly not up to any of HTTP standarts). As I continue the development, dependencies will be listed in [`Cargo.toml`](./Cargo.toml).
 
 ## Limitations
-- Only `mp3` is supported for now.
-- As no SSL or authorization is planned, for real-world usage you will need to bundle Zest with reverse proxy that supports everything you need.
+- Only `mp3` files is supported for now.
+- As no SSL or authorization is planned yet, for real-world usage you will need to pair Zest with reverse proxy that supports everything you need.
 
 ## Building
 
@@ -42,13 +42,13 @@ Successfully traversed '/run/media/music', generated index file './zest-index-0.
 
 Then you can serve it:
 ```console
-$ ./zest serve zest-index-0.json -p 1234 -t 16 -l -u 3
+$ zest serve zest-index-0.json -p 1234 -t 16 -l -u 3
 Running Zest web-server, version 0.4.0-unstable (c) toiletbril <https://github.com/toiletbril>
 1 [18:13:16] ThreadId(1) -> MAIN: Starting the dispatcher...
 2 [18:13:16] ThreadId(1) -> MAIN: Starting the logger...
 3 [18:13:16] ThreadId(2) -> DISPATCHER: Binding to <http://localhost:1234>...
 4 [18:13:16] ThreadId(2) -> DISPATCHER: Started. Available threads: 16.
-```
+```;
 
 ### Help
 
