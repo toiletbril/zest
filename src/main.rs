@@ -71,10 +71,10 @@ fn entry() -> Result<(), String> {
 
     if show_help {
         println!("USAGE: {} [-options] <subcommand>", program_name);
-        println!("Unstable music-streaming web-server.");
+        println!("Music-streaming web-server.");
         println!("");
         println!("SUBCOMMANDS:  serve <index file>     \tServe the music.");
-        println!("              index <directory>      \tIndex a directory and make the index file.");
+        println!("              index <directory>      \tIndex directory and make an index file.");
         println!("");
         println!("OPTIONS:      -p, --port <port>      \tSet server's port.");
         println!("              -a, --address <adress> \tSet server's address.");
