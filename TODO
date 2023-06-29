@@ -4,5 +4,6 @@
 - Verbose mode for logger.
 - Date for logger (impossible).
 - Http versioning.
+- More effective index.
 - Endpoints documentation, logging info.
 - Investigate "bad headers" error.
