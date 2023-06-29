@@ -1,9 +1,8 @@
-- Actual streaming with example frontend.
-- This looks kinda cluttered.
+- Example frontend.
+- Cleanup.
 - kill() for ThreadPool.
 - Verbose mode for logger.
 - Date for logger (impossible).
 - Http versioning.
 - Endpoints documentation, logging info.
 - Investigate "bad headers" error.
-- Authorization.
