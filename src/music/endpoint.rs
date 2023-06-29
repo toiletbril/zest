@@ -1,7 +1,7 @@
 use std::{fs::File};
 use std::io::{Error, Read, Seek, SeekFrom};
 
-use crate::{common::util::{Am, escape_iter}};
+use crate::{common::util::{Am, escape_array}};
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
 use crate::{log, Logger, Log};
@@ -20,8 +20,8 @@ pub fn list_handler<'a>(
     if let Ok(index) = index_result {
         log!(logger, "Responding with music list to {:?}", connection.stream());
         HttpResponse::new(200, "OK")
-            .set_header("Content-Type", "application/json")
-            .set_body(format!("{:?}", escape_iter(index.map().keys())).as_bytes())
+            .allow_all_origins(connection)
+            .set_json_body(&escape_array(index.map().keys()))
             .send(connection)
     } else {
         unreachable!()
@@ -50,8 +50,8 @@ pub fn chunk_handler<'a>(
                 return serve_music_chunk(connection, logger, chunk, format!("{}{}", index.path(), path))
             } else {
                 return Ok(HttpResponse::new(404, "Not Found")
-                            .set_header("Content-Type", "application/json")
-                            .set_body("{ \"message\": \"Track specified was not found\" }".as_bytes())
+                            .set_json_body(&"{ \"message\": \"Track specified was not found\" }")
+                            .allow_all_origins(connection)
                             .send(connection)?
                 )
             }
@@ -59,8 +59,8 @@ pub fn chunk_handler<'a>(
     }
 
     HttpResponse::new(400, "Bad Request")
-        .set_header("Content-Type", "application/json")
-        .set_body("{ \"message\": \"Please specify track and chunk with path parameters\" }".as_bytes())
+        .set_json_body(&"{ \"message\": \"Please specify track and chunk with path parameters\" }")
+        .allow_all_origins(connection)
         .send(connection)
 }
 
@@ -77,8 +77,8 @@ fn serve_music_chunk<'a>(
 
     if max_size < start_pos {
         return HttpResponse::new(416, "Range Not Satisfiable")
-                .set_header("Content-Type", "application/json")
-                .set_body("{ \"message\": \"Chunk is out of bounds.\" }".as_bytes())
+                .set_json_body(&"{ \"message\": \"Chunk is out of bounds.\" }")
+                .allow_all_origins(connection)
                 .send(connection);
     }
 
@@ -105,5 +105,6 @@ fn serve_music_chunk<'a>(
         .set_header("Content-Type", "audio/mpeg")
         .set_header("Content-Length", bytes_read)
         .set_body(&buffer[..bytes_read])
+        .allow_all_origins(connection)
         .send(connection)
 }

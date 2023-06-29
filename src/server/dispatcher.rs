@@ -8,6 +8,8 @@ use crate::{log};
 use crate::common::logger::{Logger, Log};
 use crate::common::threads::ThreadPool;
 
+type DispatcherJob = fn(&mut HttpConnection, &Am<Logger>) -> Result<(), Box<dyn Error>>;
+
 /// Starts the dispatcher, creating `ThreadPool` with N threads to handle incoming connections.
 /// Job is the function to execute on incoming connections.
 ///
@@ -17,7 +19,7 @@ pub fn start_dispatcher<'a>(
     address: String,
     thread_count: usize,
     logger: Am<Logger>,
-    job: fn(&mut HttpConnection, &Am<Logger>) -> Result<(), Box<dyn Error>>,
+    job: DispatcherJob,
 ) -> Result<(), std::io::Error> {
     log!(logger, "Binding to <http://{address}>...");
     let listener = TcpListener::bind(address)?;
@@ -49,7 +51,7 @@ pub fn start_dispatcher<'a>(
 fn handle_stream<'a>(
     stream: TcpStream,
     logger: Am<Logger>,
-    job: fn(&mut HttpConnection, &Am<Logger>) -> Result<(), Box<dyn Error>>,
+    job: DispatcherJob,
 ) -> Result<(), Box<dyn Error>> {
     let connection = HttpConnection::new(stream);
 
@@ -58,9 +60,10 @@ fn handle_stream<'a>(
 
         if let Err(err) = job(&mut connection, &logger) {
             HttpResponse::new(500, "Internal Server Error")
+                .allow_all_origins(&connection)
                 .send(&mut connection)?;
-            log!(logger, "*** An internal error has occured: {}", err);
 
+            log!(logger, "*** An internal error has occured: {}", err);
             Err(err)
         } else {
             log!(logger, "Closing {:?}", connection.stream());

@@ -41,7 +41,7 @@ impl<'a> HttpResponse<'a> {
             .set_body(body.as_ref().as_bytes())
     }
 
-    pub fn mirror_host_origin(self, connection: &HttpConnection) -> Self {
+    pub fn allow_all_origins(self, connection: &HttpConnection) -> Self {
         let host = connection.headers().get("origin");
         self.set_header("Access-Control-Allow-Origin", host.unwrap_or(&"*".to_string()))
     }
