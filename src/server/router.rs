@@ -1,13 +1,13 @@
-use std::{error::Error};
+use std::error::Error;
 
 use crate::{
+    common::logger::Logger,
     common::util::Am,
     http::{
         connection::{HttpConnection, HttpMethod},
         response::HttpResponse,
     },
-    common::logger::Logger,
-    music::endpoint::{list_handler, chunk_handler}
+    music::endpoint::{chunk_handler, list_handler},
 };
 
 pub fn route<'a>(
@@ -22,7 +22,5 @@ pub fn route<'a>(
 }
 
 fn not_found<'a>() -> HttpResponse<'a> {
-    HttpResponse::new(404, "Not Found")
-        .set_header("Content-Type", "application/json")
-        .set_body("{ \"message\": \"Page not found\" }".as_bytes())
+    HttpResponse::new(404, "Not Found").set_json_body(&"{ \"message\": \"Page not found\" }")
 }
