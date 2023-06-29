@@ -1,57 +1,27 @@
-use std::fs::File;
+use std::{fs::File};
 use std::io::{Error, Read, Seek, SeekFrom};
-use std::sync::{Arc, Once, RwLock};
 
-use crate::common::{Am, MusicIndex};
+use crate::{common::util::{Am, escape_iter}};
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
-use crate::{log, Log, Logger};
+use crate::{log, Logger, Log};
 
-use super::index::load_index;
+use super::index::get_music_index;
 
 const CHUNK_SIZE: usize = 1024 * 512; // 512 KB
-
-static mut STATIC_MUSIC_INDEX: Result<Arc<RwLock<MusicIndex>>, String> =
-    Err(String::new());
-static INIT_MUSIC: Once = Once::new();
-
-// TODO:
-// Who doesn't love hacks
-pub fn init_music_index(path: String) -> Result<(), String> {
-    unsafe {
-        INIT_MUSIC.call_once(move || {
-            if STATIC_MUSIC_INDEX.is_err() {
-                match load_index(path) {
-                    Ok(index) => STATIC_MUSIC_INDEX = Ok(Arc::new(RwLock::new(index))),
-                    Err(err) => {
-                        STATIC_MUSIC_INDEX = Err(err.to_string())
-                    }
-                }
-            }
-        });
-        match &STATIC_MUSIC_INDEX {
-            Ok(_) => Ok(()),
-            Err(err) => Err(err.into()),
-        }
-    }
-}
-
-pub unsafe fn get_music_index() -> Arc<RwLock<MusicIndex>> {
-    unsafe { STATIC_MUSIC_INDEX.as_ref().unwrap().clone() }
-}
 
 pub fn list_handler<'a>(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
 ) -> Result<(), Error> {
-    let index = unsafe { get_music_index() };
-    let index_map = index.read();
+    let index = get_music_index();
+    let index_result = index.read();
 
-    if let Ok(index_map) = index_map {
+    if let Ok(index) = index_result {
         log!(logger, "Responding with music list to {:?}", connection.stream());
         HttpResponse::new(200, "OK")
             .set_header("Content-Type", "application/json")
-            .set_body(format!("{:?}", index_map.keys()).as_bytes())
+            .set_body(format!("{:?}", escape_iter(index.map().keys())).as_bytes())
             .send(connection)
     } else {
         unreachable!()
@@ -69,23 +39,25 @@ pub fn chunk_handler<'a>(
         .and_then(|x| x.parse::<usize>().ok())
         .unwrap_or(0);
 
-    let track_result = params.and_then(|x| x.get("track"));
+    let track_result = params.and_then(|x| x.get("name"));
 
     if let Some(filename) = track_result {
-        let index = unsafe { get_music_index() };
+        let index = get_music_index();
         let index_map = index.read();
-        if let Ok(index_map) = index_map {
-            let filepath = index_map.get(filename);
+        if let Ok(index) = index_map {
+            let filepath = index.map().get(filename);
             if let Some(path) = filepath {
-                serve_music_chunk(connection, logger, chunk, path.to_string())?;
+                return serve_music_chunk(connection, logger, chunk, format!("{}{}", index.path(), path))
             } else {
-                HttpResponse::new(404, "Not Found")
-                    .set_header("Content-Type", "application/json")
-                    .set_body("{ \"message\": \"Track specified was not found\" }".as_bytes())
-                    .send(connection)?;
+                return Ok(HttpResponse::new(404, "Not Found")
+                            .set_header("Content-Type", "application/json")
+                            .set_body("{ \"message\": \"Track specified was not found\" }".as_bytes())
+                            .send(connection)?
+                )
             }
         }
     }
+
     HttpResponse::new(400, "Bad Request")
         .set_header("Content-Type", "application/json")
         .set_body("{ \"message\": \"Please specify track and chunk with path parameters\" }".as_bytes())
@@ -104,7 +76,10 @@ fn serve_music_chunk<'a>(
     let start_pos = chunk_index * CHUNK_SIZE;
 
     if max_size < start_pos {
-        return HttpResponse::new(416, "Range Not Satisfiable").send(connection);
+        return HttpResponse::new(416, "Range Not Satisfiable")
+                .set_header("Content-Type", "application/json")
+                .set_body("{ \"message\": \"Chunk is out of bounds.\" }".as_bytes())
+                .send(connection);
     }
 
     file.seek(SeekFrom::Start(start_pos as u64))?;
