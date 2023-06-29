@@ -100,7 +100,7 @@ Example Response:
 HTTP/1.1 200 OK
 Content-Type: audio/mpeg
 
-...
+<Chunk of the music file specified>
 ```
 
 ### List of available track names
