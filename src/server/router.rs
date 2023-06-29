@@ -1,7 +1,7 @@
 use std::{error::Error};
 
 use crate::{
-    common::Am,
+    common::util::Am,
     http::{
         connection::{HttpConnection, HttpMethod},
         response::HttpResponse,
@@ -15,8 +15,8 @@ pub fn route<'a>(
     logger: &Am<Logger>,
 ) -> Result<(), Box<dyn Error>> {
     Ok(match (connection.path().as_str(), connection.method()) {
-        ("/api/v1/music", HttpMethod::GET) => chunk_handler(connection, logger),
-        ("/api/v1/music/list", HttpMethod::GET) => list_handler(connection, logger),
+        ("/api/v1/music/get", HttpMethod::GET) => chunk_handler(connection, logger),
+        ("/api/v1/music/all", HttpMethod::GET) => list_handler(connection, logger),
         _ => not_found().send(connection),
     }?)
 }
