@@ -18,7 +18,7 @@ use server::dispatcher::start_dispatcher;
 use server::router;
 use common::logger::{Logger, Log};
 
-use crate::music::endpoint::init_music_index;
+use crate::music::index::init_music_index;
 use crate::music::index::make_index;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -71,7 +71,7 @@ fn entry() -> Result<(), String> {
 
     if show_help {
         println!("USAGE: {} [-options] <subcommand>", program_name);
-        println!("Music-streaming web-server.");
+        println!("Unstable music-streaming web-server.");
         println!("");
         println!("SUBCOMMANDS:  serve <index file>     \tServe the music.");
         println!("              index <directory>      \tIndex a directory and make the index file.");
