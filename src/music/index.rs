@@ -2,7 +2,7 @@ use crate::common::util::{FileName, FilePath, IndexMap};
 use std::{
     collections::HashMap,
     fs::{self, File},
-    io::{BufReader, BufWriter, Error, ErrorKind, Read, Write},
+    io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Read, Write},
     path::Path,
     sync::{Arc, Once, RwLock},
 };
@@ -48,7 +48,6 @@ pub fn get_music_index() -> Arc<RwLock<MusicIndex>> {
 }
 
 // {"path": "...", "entries": [ { "...": "..." }, ...] }
-// FIXME: This will fucking explode with large files
 fn load_index(path: String) -> Result<MusicIndex, Error> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
@@ -56,11 +55,11 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
     let mut index_path = String::new();
     let mut entries: HashMap<FileName, FilePath> = HashMap::new();
 
-    let mut string_buf = String::new();
+    let mut current_char_position = 0;
+
     let mut char_buf = vec![];
     let mut buffer = [0; 1];
 
-    let mut in_quotes = false;
     let mut read_key = false;
     let mut in_array = false;
     let mut key = String::new();
@@ -74,59 +73,54 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
             break;
         }
 
-        match String::from_utf8(char_buf.clone()) {
-            Err(_) => continue,
-            Ok(c) => {
-                match c.as_str() {
-                    "{" => {}
-                    "}" => {}
-                    ":" => {}
-                    "," => {}
-                    "[" => {
-                        if !in_quotes {
-                            in_array = true;
-                            read_key = false;
-                        }
-                    }
-                    "]" => {
-                        if !in_quotes {
-                            in_array = false;
-                        }
-                    }
-                    "\"" => {
-                        if !in_quotes {
-                            in_quotes = true;
-                        } else {
-                            if !read_key {
-                                key = string_buf.clone();
-                            } else {
-                                value = string_buf.clone();
-                                if in_array {
-                                    entries.insert(key.clone(), value.clone());
-                                }
-                            }
-                            read_key = !read_key;
-                            string_buf.clear();
-                            in_quotes = false;
-                        }
-                    }
-                    " " => {
-                        if in_quotes {
-                            string_buf.extend(c.chars());
-                        }
-                    }
-                    _ => {
-                        string_buf.extend(c.chars());
+        match buffer[0] as char {
+            '{' => {}
+            '}' => {}
+            ':' => {}
+            ',' => {}
+            ' ' => {}
+            '[' => {
+                in_array = true;
+                read_key = false;
+            }
+            ']' => {
+                in_array = false;
+            }
+            '\n' => {}
+            '\"' => {
+                let mut buffer = vec![];
+                reader.read_until(b'\"', &mut buffer)?;
+                let _ = buffer.pop(); // remove last "
+
+                let quoted = String::from_utf8(buffer).map_err(|err| {
+                    let message =
+                        format!("Invalid UTF-8 sequence at position {} ({})", current_char_position, err);
+                    Error::new(ErrorKind::InvalidData, message)
+                })?;
+
+                if !read_key {
+                    key = quoted;
+                } else {
+                    value = quoted;
+                    if in_array {
+                        entries.insert(key.clone(), value.clone());
                     }
                 }
-
-                char_buf.clear();
-
-                if &key == "path" && !value.is_empty() {
-                    index_path = value.clone();
-                }
+                read_key = !read_key;
+            }
+            _ => {
+                let message = format!("Invalid character '{}' at position {}", current_char_position, buffer[0] as char);
+                return Err(Error::new(ErrorKind::InvalidData, message));
             }
         }
+
+        char_buf.clear();
+
+        if &key == "path" && !value.is_empty() {
+            index_path = value.clone();
+        }
+
+        current_char_position += 1;
     }
 
     if index_path.is_empty() || entries.is_empty() {
