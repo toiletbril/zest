@@ -38,21 +38,17 @@ fn entry() -> Result<(), String> {
     let mut utc_flag;
     let mut log_file_flag;
 
+    let mut show_version;
     let mut show_help;
 
     let mut flags: Vec<Flag> = flags!(
-        utc_flag: StringFlag,
-        ["-u", "--utc"],
-        thread_count_flag: StringFlag,
-        ["-t", "--threads"],
-        show_help: BoolFlag,
-        ["-?", "--help"],
-        port_flag: StringFlag,
-        ["-p", "--port"],
-        address_flag: StringFlag,
-        ["-a", "--address"],
-        log_file_flag: BoolFlag,
-        ["-l", "--log-file"]
+        show_help: BoolFlag,           ["--help"],
+        show_version: BoolFlag,        ["--version"],
+        thread_count_flag: StringFlag, ["-t", "--threads"],
+        utc_flag: StringFlag,          ["-u", "--utc"],
+        port_flag: StringFlag,         ["-p", "--port"],
+        address_flag: StringFlag,      ["-a", "--address"],
+        log_file_flag: BoolFlag,       ["-l", "--log-file"]
     );
 
     let args = parse_flags(&mut args, &mut flags)?;
@@ -70,7 +66,7 @@ fn entry() -> Result<(), String> {
     let utc = utc_flag.parse::<u64>().unwrap_or(DEFAULT_UTC);
 
     if show_help {
-        println!("USAGE: {} [-options] <subcommand>", program_name);
+        println!("USAGE: {} [-options] [subcommand]", program_name);
         println!("Music-streaming web-server.");
         println!("");
         println!("SUBCOMMANDS:  serve <index file>     \tServe the music.");
@@ -81,8 +77,13 @@ fn entry() -> Result<(), String> {
         println!("              -t, --threads <count>  \tThreads to create.");
         println!("              -u, --utc <hours>      \tUTC adjustment for logger.");
         println!("              -l, --log-file         \tWrite logs to a log file.");
-        println!("");
-        println!("{} (c) toiletbril <https://github.com/toiletbril>", VERSION);
+        println!("                  --help             \tDisplay this message.");
+        println!("                  --version          \tDisplay version.");
+        return Ok(());
+    }
+
+    if show_version {
+        println!("Zest {} (c) toiletbril <https://github.com/toiletbril>", VERSION);
         return Ok(());
     }
 
@@ -90,10 +91,7 @@ fn entry() -> Result<(), String> {
         return Err("Not enough arguments.\nTry '--help' for more information".to_string());
     }
 
-    println!(
-        "Running Zest web-server, version {} (c) toiletbril <https://github.com/toiletbril>",
-        VERSION
-    );
+    println!("Running Zest {}", VERSION);
 
     match args[0].as_str() {
         "serve" => {
