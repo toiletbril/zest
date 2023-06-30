@@ -1,7 +1,8 @@
 [package]
 name = "zest"
-version = "0.4.1-unstable"
+version = "0.4.2-unstable"
 edition = "2021"
+authors = ["toiletbril"]
 
 [profile.release]
 opt-level = 3
