@@ -1,4 +1,4 @@
-- Ship with default frontend.
+- Documentation for example frontend.
 - Varible chunk size, up to 512kb.
 - JSON struct.
 - URI decoding for very weird UTF-8 names. (seems to be fixed?)
