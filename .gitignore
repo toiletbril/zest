@@ -1,7 +1,5 @@
 .vscode/
 target/
 test/
-examples/
 *.mp3
-*.html
 zest-*.*
