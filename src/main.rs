@@ -56,8 +56,8 @@ fn entry() -> Result<(), String> {
     let args = parse_flags(&mut args, &mut flags)?;
 
     let address = address_flag.is_empty()
-        .then_some(address_flag)
-        .unwrap_or(DEFAULT_ADDRESS.to_owned());
+        .then_some(DEFAULT_ADDRESS.to_owned())
+        .unwrap_or(address_flag);
     let port = port_flag
         .parse::<u32>()
         .unwrap_or(DEFAULT_PORT);
