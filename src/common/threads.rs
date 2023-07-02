@@ -22,14 +22,14 @@ impl Worker {
         let main_loop = move || loop {
             {
                 let to_exec = match receiver_clone.lock() {
-                    Ok(queue) => queue.recv().ok(),
+                    Ok(queue) => queue.recv(),
                     Err(err) => {
                         log!(logger, "*** Shutting down: {}", err);
                         break;
                     }
                 };
 
-                if let Some(job) = to_exec {
+                if let Ok(job) = to_exec {
                     job()
                 }
             }
@@ -55,6 +55,7 @@ pub struct ThreadPool {
 impl ThreadPool {
     pub fn new(size: usize, logger: Am<Logger>) -> Self {
         assert!(size > 0, "Size should be greater than zero");
+
         let mut workers = Vec::with_capacity(size);
 
         let (sender, receiver) = channel();
@@ -95,11 +96,11 @@ impl ThreadPool {
 
 impl Drop for ThreadPool {
     fn drop(&mut self) {
-        log!(self.logger, "*** Dropping thread pool...");
+        log!(self.logger, "Dropping thread pool...");
         drop(self.sender.take());
 
         for worker in &mut self.workers {
-            log!(self.logger, "*** Dropping worker {}...", worker.id);
+            log!(self.logger, "Dropping worker {}...", worker.id);
             if let Some(thread) = worker.handle.take() {
                 thread.join().unwrap();
             }

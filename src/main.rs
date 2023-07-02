@@ -5,6 +5,7 @@ use std::thread::{sleep, Builder};
 use std::time::Duration;
 
 extern crate toiletcli;
+
 use toiletcli::common::name_from_path;
 use toiletcli::flags;
 use toiletcli::flags::{parse_flags, Flag, FlagType};
@@ -15,11 +16,12 @@ mod music;
 mod server;
 
 use common::logger::{Log, Logger};
-use server::dispatcher::start_dispatcher;
-use server::router;
 
-use crate::music::index::init_music_index;
-use crate::music::index::make_index;
+use server::dispatcher::start_dispatcher;
+use server::router::route;
+
+use music::index::init_music_index;
+use music::index::make_index;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -53,17 +55,18 @@ fn entry() -> Result<(), String> {
 
     let args = parse_flags(&mut args, &mut flags)?;
 
-    let address = if address_flag.is_empty() {
-        DEFAULT_ADDRESS.to_string()
-    } else {
-        address_flag
-    };
-
-    let port = port_flag.parse::<u32>().unwrap_or(DEFAULT_PORT);
+    let address = address_flag.is_empty()
+        .then_some(address_flag)
+        .unwrap_or(DEFAULT_ADDRESS.to_owned());
+    let port = port_flag
+        .parse::<u32>()
+        .unwrap_or(DEFAULT_PORT);
     let thread_count = thread_count_flag
         .parse::<usize>()
         .unwrap_or(DEFAULT_THREAD_COUNT);
-    let utc = utc_flag.parse::<u64>().unwrap_or(DEFAULT_UTC);
+    let utc = utc_flag
+        .parse::<u64>()
+        .unwrap_or(DEFAULT_UTC);
 
     if show_help {
         println!("USAGE: {} [-options] [subcommand]", program_name);
@@ -88,7 +91,7 @@ fn entry() -> Result<(), String> {
     }
 
     if args.len() < 1 {
-        return Err("Not enough arguments.\nTry '--help' for more information".to_string());
+        return Err("Not enough arguments.\n".to_string());
     }
 
     println!("Running Zest {}", VERSION);
@@ -96,7 +99,8 @@ fn entry() -> Result<(), String> {
     match args[0].as_str() {
         "serve" => {
             if args.len() < 2 {
-                return Err(format!("Not enough arguments.\nUSAGE: {} serve <index file>\nTry '--help' for more information", program_name));
+                return Err(format!("Not enough arguments.\nUSAGE: {} serve <index file>\n",
+                                  program_name));
             }
 
             init_music_index(args[1].to_owned())?;
@@ -113,7 +117,7 @@ fn entry() -> Result<(), String> {
                         format!("{address}:{port}"),
                         thread_count,
                         logger_clone,
-                        router::route,
+                        route,
                     );
                 }).map_err(|err| err.to_string())?;
 
@@ -126,26 +130,27 @@ fn entry() -> Result<(), String> {
         }
         "index" => {
             if args.len() < 2 {
-                return Err(format!("Not enough arguments.\nUSAGE: {} index <directory>\nTry '--help' for more information", program_name));
+                    return Err(format!("Not enough arguments.\nUSAGE: {} index <directory>\n",
+                                      program_name));
             }
 
             let config = args[1].to_owned();
             println!("Traversing '{}'...", config);
 
             match make_index(config.to_owned()) {
-                Err(err) => println!("Could not index '{}': {}", config, err),
-                Ok(filename) => println!(
-                    "Successfully traversed '{}', generated index file '{}'.",
-                    config, filename
-                ),
+                Err(err) => return Err(format!("Could not index '{}': {}", config, err)),
+                Ok(filename) => {
+                    println!("Successfully traversed '{}', generated index file '{}'.",
+                            config, filename)
+                }
             }
 
             Ok(())
         }
-        _ => Err(format!(
-            "Unknown subcommand '{}'.\nTry '--help' for more information",
-            args[0]
-        )),
+        _ => {
+            Err(format!("Unknown subcommand '{}'.\n",
+                args[0]))
+        }
     }
 }
 
@@ -153,7 +158,7 @@ fn main() -> ExitCode {
     match entry() {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
-            eprintln!("ERROR: {}.", err);
+            eprintln!("ERROR: {}.\nTry '--help' for more information", err);
             ExitCode::FAILURE
         }
     }

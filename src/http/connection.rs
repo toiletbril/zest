@@ -205,11 +205,11 @@ impl HttpConnection {
     }
 
     pub fn method(&self) -> HttpMethod {
-        self.method.to_owned()
+        self.method
     }
 
-    pub fn path(&self) -> String {
-        self.path.to_owned()
+    pub fn path(&self) -> &String {
+        &self.path
     }
 
     pub fn headers(&self) -> &Headers {

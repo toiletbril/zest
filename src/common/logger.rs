@@ -49,64 +49,61 @@ type LogQueue = Vec<String>;
 pub struct Logger {
     index: usize,
     queue: LogQueue,
-    utc: u64,
-    file: Option<File>,
+    hour_offset: u64,
+    log_file: Option<File>,
 }
 
 impl Logger {
     pub fn new(utc: u64, use_file: bool) -> Self {
         let mut i = 0;
 
-        let file = if use_file {
-            while Path::new(format!("./zest-log-{}.txt", i).as_str()).exists() {
+        let file = use_file.then(|| {
+            while Path::new(format!("./zest-{}.log", i).as_str()).exists() {
                 i += 1;
             }
 
             let file = File::create(format!("./zest-{}.log", i));
 
             if let Err(err) = file {
-                panic!(
-                    "*** An error occured while creating a file for the logger: {}",
-                    err
-                );
+                panic!("*** An error occured while creating a file for the logger: {}",
+                      err);
             }
 
-            Some(file.unwrap())
-        } else {
-            None
-        };
+            file.unwrap()
+        });
 
         return Logger {
             index: 1,
             queue: vec![],
-            utc: utc,
-            file: file,
+            hour_offset: utc,
+            log_file: file,
         };
     }
 }
 
 impl Log for Logger {
     fn log(&mut self, message: String) {
-        self.queue.push(format!(
-            "{} [{}] {:?} -> {}: {}",
-            self.index,
-            time!(self.utc),
-            current().id(),
-            current()
-                .name()
-                .map_or("MAIN".to_string(), |x| x.to_uppercase()),
-            message
+        self.queue.push(
+            format!("{} [{}] {:?} -> {}: {}",
+                    self.index,
+                    time!(self.hour_offset),
+                    current().id(),
+                    current().name()
+                        .map_or("MAIN".to_string(), |x| x.to_uppercase()),
+                    message
         ));
+
         self.index += 1;
     }
 
     fn flush(&mut self) -> Result<(), Error> {
         if !&self.queue.is_empty() {
             for entry in &self.queue {
-                self.file.as_ref()
+                self.log_file.as_ref()
                     .map(|mut x| write!(x, "{}\n", entry));
                 println!("{}", entry);
             }
+            
             self.queue.clear();
         }
 

@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::{Error, Read, Seek, SeekFrom};
 
-use crate::common::util::{escape_array, Am};
+use crate::common::util::{make_json_array_string, Am};
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
 use crate::{log, Log, Logger};
@@ -12,22 +12,13 @@ const CHUNK_SIZE: usize = 1024 * 512; // 512 KB
 
 pub fn list_handler<'a>(connection: &mut HttpConnection, logger: &Am<Logger>) -> Result<(), Error> {
     let index = get_music_index();
-    let index_result = index.read();
-
-    if let Ok(index) = index_result {
-        log!(
-            logger,
-            "Responding with music list to {:?}",
-            connection.stream()
-        );
+        log!(logger, "Responding with music list to {:?}",
+            connection.stream());
 
         return HttpResponse::new(200, "OK")
             .allow_all_origins(connection)
-            .set_json_body(&escape_array(index.map().keys()))
+            .set_json_body(&make_json_array_string(index.map().keys()))
             .send(connection);
-    } else {
-        unreachable!()
-    }
 }
 
 pub fn chunk_handler<'a>(
@@ -45,22 +36,16 @@ pub fn chunk_handler<'a>(
 
     if let Some(filename) = track_result {
         let index = get_music_index();
-        let index_map = index.read();
-        if let Ok(index) = index_map {
-            let filepath = index.map().get(filename);
-            if let Some(path) = filepath {
-                return serve_music_chunk(
-                    connection,
-                    logger,
-                    chunk,
-                    format!("{}{}", index.path(), path),
-                );
-            } else {
-                return Ok(HttpResponse::new(404, "Not Found")
-                    .set_json_body(&"{ \"message\": \"Track specified was not found\" }")
-                    .allow_all_origins(connection)
-                    .send(connection)?);
-            }
+        let filepath = index.map().get(filename);
+
+        if let Some(path) = filepath {
+            return serve_music_chunk(connection, logger, chunk,
+                                    format!("{}{}", index.path(), path));
+        } else {
+            return Ok(HttpResponse::new(404, "Not Found")
+                .set_json_body(&"{ \"message\": \"Track specified was not found\" }")
+                .allow_all_origins(connection)
+                .send(connection)?);
         }
     }
 
@@ -100,14 +85,8 @@ fn serve_music_chunk<'a>(
         }
     };
 
-    log!(
-        logger,
-        "Serving a chunk '{}' [{}..{}] to {:?}.",
-        path,
-        start_pos,
-        start_pos + CHUNK_SIZE,
-        connection.stream()
-    );
+    log!(logger, "Serving a chunk '{}' [{}..{}] to {:?}.",
+        path, start_pos, start_pos + CHUNK_SIZE, connection.stream());
 
     return HttpResponse::new(200, "OK")
         .set_header("Content-Type", "audio/mpeg")

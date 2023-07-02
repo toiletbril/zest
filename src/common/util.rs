@@ -7,8 +7,7 @@ pub type FilePath = String;
 pub type FileName = String;
 pub type IndexMap = HashMap<FileName, FilePath>;
 
-
-pub fn escape_array<I: Iterator<Item = impl Display + AsRef<str>>>(iter: I) -> String
+pub fn make_json_array_string<I: Iterator<Item = impl AsRef<str>>>(iter: I) -> String
 {
     let mut s = String::from("[");
 
@@ -19,7 +18,7 @@ pub fn escape_array<I: Iterator<Item = impl Display + AsRef<str>>>(iter: I) -> S
         s += entry.as_ref();
         s += "\"";
         if peekable.peek().is_some() {
-            s+= ",";
+            s += ",";
         }
     }
 
@@ -32,7 +31,13 @@ pub fn url_encode<S: Display>(input: S) -> String {
     let mut encoded = String::new();
     for byte in input.to_string().bytes() {
         match byte {
-            b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z' | b'-' | b'.' | b'_' | b'~' => {
+            b'0'..=b'9' |
+            b'A'..=b'Z' |
+            b'a'..=b'z' |
+            b'-' |
+            b'.' |
+            b'_' |
+            b'~' => {
                 encoded.push(byte as char);
             }
             _ => {
@@ -45,10 +50,12 @@ pub fn url_encode<S: Display>(input: S) -> String {
     encoded
 }
 
-pub fn url_decode<S: Display>(input: S) -> String {
-    let mut decoded = String::new();
-    let input_string = input.to_string();
+pub fn url_decode<S: AsRef<str>>(input: S) -> String {
+    let input_string = input.as_ref();
     let mut bytes = input_string.bytes();
+
+    let mut decoded = String::new();
+
     while let Some(byte) = bytes.next() {
         match byte {
             b'%' => {

@@ -4,7 +4,7 @@ use std::{
     fs::{self, File},
     io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Read, Write},
     path::Path,
-    sync::{Arc, Once, RwLock},
+    sync::{Once},
 };
 
 #[derive(Debug)]
@@ -23,7 +23,7 @@ impl MusicIndex {
     }
 }
 
-static mut STATIC_MUSIC_INDEX: Result<Arc<RwLock<MusicIndex>>, String> = Err(String::new());
+static mut STATIC_MUSIC_INDEX: Result<MusicIndex, String> = Err(String::new());
 static INIT_MUSIC: Once = Once::new();
 
 pub fn init_music_index(path: String) -> Result<(), String> {
@@ -31,7 +31,7 @@ pub fn init_music_index(path: String) -> Result<(), String> {
         INIT_MUSIC.call_once(move || {
             if STATIC_MUSIC_INDEX.is_err() {
                 match load_index(path) {
-                    Ok(index) => STATIC_MUSIC_INDEX = Ok(Arc::new(RwLock::new(index))),
+                    Ok(index) => STATIC_MUSIC_INDEX = Ok(index),
                     Err(err) => STATIC_MUSIC_INDEX = Err(err.to_string()),
                 }
             }
@@ -43,8 +43,8 @@ pub fn init_music_index(path: String) -> Result<(), String> {
     }
 }
 
-pub fn get_music_index() -> Arc<RwLock<MusicIndex>> {
-    unsafe { STATIC_MUSIC_INDEX.as_ref().unwrap().clone() }
+pub fn get_music_index() -> &'static MusicIndex {
+    unsafe { STATIC_MUSIC_INDEX.as_ref().unwrap() }
 }
 
 // {"path": "...", "entries": [ { "...": "..." }, ...] }
@@ -55,7 +55,7 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
     let mut index_path = String::new();
     let mut entries: HashMap<FileName, FilePath> = HashMap::new();
 
-    let mut current_char_position = 0;
+    let mut cursor_position = 0;
 
     let mut char_buf = vec![];
     let mut buffer = [0; 1];
@@ -86,15 +86,16 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
             ']' => {
                 in_array = false;
             }
+            '\r' => {}
             '\n' => {}
             '\"' => {
                 let mut buffer = vec![];
                 reader.read_until(b'\"', &mut buffer)?;
-                let _ = buffer.pop(); // remove last "
+                buffer.pop(); // remove last "
 
                 let quoted = String::from_utf8(buffer).map_err(|err| {
                     let message =
-                        format!("Invalid UTF-8 sequence at position {} ({})", current_char_position, err);
+                        format!("Invalid UTF-8 sequence at position {} ({})", cursor_position, err);
                     Error::new(ErrorKind::InvalidData, message)
                 })?;
 
@@ -109,7 +110,7 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
                 read_key = !read_key;
             }
             _ => {
-                let message = format!("Invalid character '{}' at position {}", current_char_position, buffer[0] as char);
+                let message = format!("Invalid character '{}' at position {}", cursor_position, buffer[0] as char);
                 return Err(Error::new(ErrorKind::InvalidData, message));
             }
         }
@@ -120,7 +121,7 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
             index_path = value.clone();
         }
 
-        current_char_position += 1;
+        cursor_position += 1;
     }
 
     if index_path.is_empty() || entries.is_empty() {
@@ -137,43 +138,40 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
 }
 
 pub fn make_index(path: FilePath) -> Result<String, Error> {
-    make_index_file(recurse_music(&path, None)?, path)
+    make_index_file(recurse_music(&path)?, path)
 }
 
-fn recurse_music(
-    path: &String,
-    path_len: Option<usize>,
-) -> Result<HashMap<FileName, FilePath>, Error> {
-    let mut dir = fs::read_dir(path.to_string())?;
-    let mut index: HashMap<FileName, FilePath> = HashMap::new();
+fn recurse_music(path: &String) -> Result<HashMap<FileName, FilePath>, Error> {
+    fn internal(path: &String, initial_path_len: usize) -> Result<HashMap<FileName, FilePath>, Error> {
+        let mut dir = fs::read_dir(path.to_string())?;
+        let mut index: HashMap<FileName, FilePath> = HashMap::new();
 
-    while let Some(Ok(file)) = dir.next() {
-        let mut filepath: String = file.path().to_string_lossy().into();
-        let mut filename: String = file.file_name().to_string_lossy().into();
+        while let Some(Ok(file)) = dir.next() {
+            let mut filepath: String = file.path().to_string_lossy().into();
+            let mut filename: String = file.file_name().to_string_lossy().into();
 
-        if cfg!(target_os = "windows") {
-            filepath = filepath.replace("\\", "/");
-            filename = filename.replace("\\", "/");
-        }
-
-        if let Ok(true) = file.metadata().map(|x| x.is_file()) {
-            if filepath.ends_with(".mp3") {
-                filepath.drain(..path_len.unwrap_or(0));
-                index.insert(
-                    filename.trim_end_matches(".mp3").to_owned(),
-                    filepath.trim_start_matches(path.as_str()).to_owned(),
-                );
+            if cfg!(target_os = "windows") {
+                filepath = filepath.replace("\\", "/");
+                filename = filename.replace("\\", "/");
             }
-        } else {
-            if let Some(len) = path_len {
-                index.extend(recurse_music(&filepath, Some(len))?);
+
+            if let Ok(true) = file.metadata().map(|x| x.is_file()) {
+                if filepath.ends_with(".mp3") {
+                    filepath.drain(..initial_path_len);
+                    index.insert(
+                        filename.trim_end_matches(".mp3").to_owned(),
+                        filepath.trim_start_matches(path.as_str()).to_owned(),
+                    );
+                }
             } else {
-                index.extend(recurse_music(&filepath, Some(path.len()))?);
+                index.extend(internal(&filepath, initial_path_len)?);
             }
         }
+
+        Ok(index)
     }
 
-    Ok(index)
+    internal(path, path.len())
 }
 
 fn make_index_file(index: HashMap<FileName, FilePath>, path: FilePath) -> Result<String, Error> {
