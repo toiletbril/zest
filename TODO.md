@@ -1,7 +1,7 @@
 - Documentation for example frontend.
-- Varible chunk size, up to 512kb.
+- Transcode everything to webm?
 - JSON struct.
-- URI decoding for very weird UTF-8 names. (seems to be fixed?)
+- URI decoding for very weird UTF-8 names.
 - Investigate "bad headers" error.
 - kill() for ThreadPool.
 - Hot reindexing.
