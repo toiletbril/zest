@@ -53,9 +53,9 @@ function appendNextChunk(sourceBuffer, mediaSource, url, arrayBuffer) {
     } else {
         const interval = setInterval(() => { // i can't
             if (!sourceBuffer.updating) {
+                clearInterval(interval);
                 mediaSource.duration = totalDuration;
                 audioPlayer.duration = mediaSource.duration;
-                clearInterval(interval);
             }
         }, 1000)
     }
