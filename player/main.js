@@ -1,12 +1,14 @@
 const endpoint = `http://localhost:6969/api/v1/music`;
 
+let updatingBuffers = 0;
 let totalDuration = 0;
+
+const audioPlayer = document.getElementById("audio-player");
 
 let mediaSource;
 let sourceBuffer;
 
 function fetchAndPlayMusic(trackName, chunkIndex = 0) {
-    const audioPlayer = document.getElementById('audio-player');
     const url = endpoint + `/get?name=${encodeURIComponent(trackName)}&chunk=${chunkIndex}`;
 
     mediaSource = new MediaSource();
@@ -14,16 +16,16 @@ function fetchAndPlayMusic(trackName, chunkIndex = 0) {
 
     document.getElementById("track-name").textContent = trackName;
 
-    mediaSource.addEventListener('sourceopen', () => {
-        sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+    mediaSource.addEventListener("sourceopen", () => {
+        sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
         fetchAndAppendChunk(sourceBuffer, mediaSource, url);
     });
 
-    mediaSource.addEventListener('error', error => {
-        console.error('Error opening media source:', error);
+    mediaSource.addEventListener("error", error => {
+        console.error("Error opening media source:", error);
     });
 
-    mediaSource.addEventListener('sourceended', () => {
+    mediaSource.addEventListener("sourceended", () => {
         audioPlayer.duration = totalDuration;
     });
 }
@@ -32,10 +34,10 @@ function resetPlayback() {
     totalDuration = 0;
     if (mediaSource) {
         if (sourceBuffer) {
-            sourceBuffer.removeEventListener('updateend', handleUpdateEnd);
+            sourceBuffer.removeEventListener("updateend", handleUpdateEnd);
             mediaSource.removeSourceBuffer(sourceBuffer);
         }
-        if (mediaSource.readyState === 'open') {
+        if (mediaSource.readyState === "open") {
             mediaSource.endOfStream();
         }
     }
@@ -45,7 +47,7 @@ function fetchAndAppendChunk(sourceBuffer, mediaSource, url) {
     fetch(url)
         .then(response => {
             if (!response.ok) {
-                throw new Error('Error retrieving music chunk');
+                throw new Error("Error retrieving music chunk");
             }
             return response.arrayBuffer();
         })
@@ -61,28 +63,31 @@ function fetchAndAppendChunk(sourceBuffer, mediaSource, url) {
                 appendNextChunk(sourceBuffer, mediaSource, url, arrayBuffer);
             }
         })
-        .catch(error => console.error('Error fetching music chunk:', error));
+        .catch(error => console.error("Error fetching music chunk:", error));
 }
 
-async function appendNextChunk(sourceBuffer, mediaSource, url, arrayBuffer) {
-    sourceBuffer.appendBuffer(arrayBuffer);
+const CHUNK_SIZE = 1024 * 128; // 128 kb
 
-    const isLastChunk = arrayBuffer.byteLength < 1024 * 512;
+function appendNextChunk(sourceBuffer, mediaSource, url, arrayBuffer) {
+    sourceBuffer.appendBuffer(arrayBuffer);
+    const isLastChunk = arrayBuffer.byteLength < CHUNK_SIZE;
+
     if (!isLastChunk) {
-        const nextChunkIndex = parseInt(new URL(url).searchParams.get('chunk')) + 1;
+        const nextChunkIndex = parseInt(new URL(url).searchParams.get("chunk")) + 1;
         const nextUrl = url.replace(/chunk=\d+/, `chunk=${nextChunkIndex}`);
-        const duration = await getChunkDuration(arrayBuffer);
-        totalDuration += duration;
-        mediaSource.duration = totalDuration;
         fetchAndAppendChunk(sourceBuffer, mediaSource, nextUrl);
     }
 
-    sourceBuffer.addEventListener('updateend', handleUpdateEnd);
+    updatingBuffers++;
+    sourceBuffer.addEventListener("updateend", handleUpdateEnd);
 }
 
 function handleUpdateEnd() {
-    const audioPlayer = document.getElementById('audio-player');
-    audioPlayer.duration = mediaSource.duration;
+    updatingBuffers--;
+    if (updatingBuffers === 0) {
+        mediaSource.duration = totalDuration;
+        audioPlayer.duration = mediaSource.duration;
+    }
 }
 
 function getChunkDuration(arrayBuffer) {
@@ -90,7 +95,7 @@ function getChunkDuration(arrayBuffer) {
     return audioContext.decodeAudioData(arrayBuffer)
         .then(decodedData => decodedData.duration)
         .catch(error => {
-            console.error('Error decoding audio data:', error);
+            console.error("Error decoding audio data:", error);
             return 0;
         });
 }
@@ -103,48 +108,55 @@ function playTrack(trackName) {
 let allTracks = [];
 
 function fetchTrackNames() {
-    fetch(endpoint + '/all')
+    fetch(endpoint + "/all")
         .then(response => response.json())
         .then(trackNames => {
             allTracks = trackNames;
             updateMusicList(allTracks);
         })
-        .catch(error => console.error('Error fetching track names:', error));
+        .catch(error => console.error("Error fetching track names:", error));
 }
 
-const searchInput = document.getElementById('search-input');
+const searchInput = document.getElementById("search-input");
 
 function searchTracks(event) {
     const searchTerm = searchInput.value.trim().toLowerCase();
-    if (searchTerm === '') {
+    if (searchTerm === "") {
         updateMusicList(allTracks);
-    } else if (event.key === 'Enter') {
+    } else if (event.key === "Enter") {
         const filteredTracks = allTracks.filter(track => track.toLowerCase().includes(searchTerm));
         updateMusicList(filteredTracks);
     }
 }
 
 function updateMusicList(tracks) {
-    const tracksDiv = document.getElementById('tracks');
-    tracksDiv.innerHTML = '';
+    const tracksDiv = document.getElementById("tracks");
+    tracksDiv.innerHTML = "";
 
     tracks.forEach(trackName => {
-        const trackLink = document.createElement('a');
-        trackLink.href = '#';
+        const trackLink = document.createElement("a");
+        trackLink.href = "#";
         trackLink.className = "track";
         trackLink.innerText = trackName;
-        trackLink.addEventListener('click', () => {
+        trackLink.addEventListener("click", () => {
             event.preventDefault();
             playTrack(trackName);
         });
 
-        const trackItem = document.createElement('div');
+        const trackItem = document.createElement("div");
         trackItem.appendChild(trackLink);
         tracksDiv.appendChild(trackItem);
     });
 }
 
-searchInput.addEventListener('input', searchTracks);
-searchInput.addEventListener('keyup', searchTracks);
+window.onload = () => {
+    fetchTrackNames();
 
-fetchTrackNames();
+    searchInput.addEventListener("input", searchTracks);
+    searchInput.addEventListener("keyup", searchTracks);
+
+    if (!MediaSource.isTypeSupported("audio/mpeg")) {
+        alert("Your browser does not support decoding of audio/mpeg, and playing music will not work.\n\n" +
+            "To fix this, please install a compatible decoder, such as ffmpeg.");
+    }
+};
