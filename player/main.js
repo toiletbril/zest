@@ -73,12 +73,12 @@ function extendDuration(arrayBuffer) {
 function resetPlayback() {
     totalDuration = 0;
     updatingBuffers = 0;
+    audioPlayer.currentTime = 0;
 }
 
 function playTrack(trackName) {
     resetPlayback();
     fetchMusic(trackName);
-    audioPlayer.currentTime = 0;
     audioPlayer.play();
 }
 
@@ -139,6 +139,6 @@ window.onload = () => {
     if (!MediaSource.isTypeSupported("audio/mpeg")) {
         alert(
             "Your browser does not support decoding of audio/mpeg, and playing music will not work.\n\n" +
-            "To fix this, please install a compatible decoder, such as ffmpeg.");
+            "To use this application, please install a compatible decoder, such as ffmpeg, or use Edge or Chromium.");
     }
 };
