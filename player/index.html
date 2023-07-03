@@ -3,7 +3,8 @@
 
 <head>
     <title>Zest Example</title>
-    <link rel="stylesheet" href="main.css"></style>
+    <link rel="stylesheet" href="main.css">
+    </style>
 </head>
 
 <body>
@@ -11,16 +12,18 @@
         <h1>Zest Music Player</h1>
 
         <div class="flex">
-            <input type="text" id="search-input" placeholder="Search for a track">
+            <input type="text" id="search-input" placeholder="Search...">
+        </div>
+
+        <div class="flex">
+            <p class="search-notice">Showing first 100 tracks.</p>
         </div>
 
         <div id="tracks"></div>
     </div>
-    <div class="player-wrapper">
-        <div class="container player">
-            <h4 id="track-name">No track is playing.</h4>
-            <audio id="audio-player" controls></audio>
-        </div>
+    <div class="container player">
+        <h4 id="track-name">No track is playing.</h4>
+        <audio id="audio-player" controls></audio>
     </div>
     <script src="main.js"></script>
 </body>
