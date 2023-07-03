@@ -100,7 +100,7 @@ fn entry() -> Result<(), String> {
         "serve" => {
             if args.len() < 2 {
                 return Err(format!("Not enough arguments.\nUSAGE: {} serve <index file>\n",
-                                  program_name));
+                                   program_name));
             }
 
             init_music_index(args[1].to_owned())?;
@@ -131,7 +131,7 @@ fn entry() -> Result<(), String> {
         "index" => {
             if args.len() < 2 {
                     return Err(format!("Not enough arguments.\nUSAGE: {} index <directory>\n",
-                                      program_name));
+                                       program_name));
             }
 
             let config = args[1].to_owned();
@@ -141,7 +141,7 @@ fn entry() -> Result<(), String> {
                 Err(err) => return Err(format!("Could not index '{}': {}", config, err)),
                 Ok(filename) => {
                     println!("Successfully traversed '{}', generated index file '{}'.",
-                            config, filename)
+                             config, filename)
                 }
             }
 

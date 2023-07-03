@@ -8,7 +8,7 @@ use crate::{log, Log, Logger};
 
 use super::index::get_music_index;
 
-const CHUNK_SIZE: usize = 1024 * 512; // 512 KB
+const CHUNK_SIZE: usize = 1024 * 128; // 128 kb
 
 pub fn list_handler<'a>(connection: &mut HttpConnection, logger: &Am<Logger>) -> Result<(), Error> {
     let index = get_music_index();
@@ -86,7 +86,7 @@ fn serve_music_chunk<'a>(
     };
 
     log!(logger, "Serving a chunk '{}' [{}..{}] to {:?}.",
-        path, start_pos, start_pos + CHUNK_SIZE, connection.stream());
+         path, start_pos, start_pos + CHUNK_SIZE, connection.stream());
 
     return HttpResponse::new(200, "OK")
         .set_header("Content-Type", "audio/mpeg")
