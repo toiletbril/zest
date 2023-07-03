@@ -31,16 +31,9 @@ function appendChunks(sourceBuffer, mediaSource, url) {
             return response.arrayBuffer();
         })
         .then(arrayBuffer => {
-            const appendInterval = setInterval(() => {
-                if (!sourceBuffer.updating) {
-                    clearInterval(appendInterval);
-
-                    mediaSource.duration = totalDuration;
-                    audioPlayer.duration = mediaSource.duration;
-
-                    appendNextChunk(sourceBuffer, mediaSource, url, arrayBuffer);
-                }
-            }, 100);
+            if (!sourceBuffer.updating) {
+                appendNextChunk(sourceBuffer, mediaSource, url, arrayBuffer);
+            }
         })
         .catch(error => console.error("Error fetching music chunk:", error));
 }
@@ -56,9 +49,16 @@ function appendNextChunk(sourceBuffer, mediaSource, url, arrayBuffer) {
         const nextChunkIndex = parseInt(new URL(url).searchParams.get("chunk")) + 1;
         const nextUrl = url.replace(/chunk=\d+/, `chunk=${nextChunkIndex}`);
         appendChunks(sourceBuffer, mediaSource, nextUrl);
+        extendDuration(arrayBuffer);
+    } else {
+        const interval = setInterval(() => { // i can't
+            if (!sourceBuffer.updating) {
+                mediaSource.duration = totalDuration;
+                audioPlayer.duration = mediaSource.duration;
+                clearInterval(interval);
+            }
+        }, 1000)
     }
-
-    extendDuration(arrayBuffer);
 }
 
 function extendDuration(arrayBuffer) {
@@ -66,7 +66,8 @@ function extendDuration(arrayBuffer) {
     audioContext.decodeAudioData(arrayBuffer)
         .then(decodedData => {
             totalDuration += decodedData.duration;
-        });
+        })
+        .catch(() => "fuck you");
 }
 
 function resetPlayback() {
