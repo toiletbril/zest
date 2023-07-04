@@ -1,10 +1,12 @@
 // Configure this as needed.
 const ZEST_PORT = 6969;
+const ZEST_ADDRESS = window.location.hostname;
+const CHUNK_SIZE = 1024 * 128; // 128 kb
+
 const ENDPOINT =
     "http://" +
-    `${window.location.hostname}:${ZEST_PORT}` +
+    `${ZEST_ADDRESS}:${ZEST_PORT}` +
     "/api/v1/music";
-const CHUNK_SIZE = 1024 * 128;
 
 class AudioPlayer {
     constructor (audioPlayer, chunkSize) {
