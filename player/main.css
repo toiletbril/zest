@@ -5,7 +5,7 @@
 }
 
 body {
-    background: linear-gradient(90deg, lightblue, paleturquoise);
+    background: lightblue;
 }
 
 a {
@@ -21,7 +21,7 @@ a {
 }
 
 .main-trackList-trackEntry:hover {
-    outline: 2px solid lightblue;
+    outline: 2px solid paleturquoise;
 }
 
 .mainTitle {
@@ -53,8 +53,40 @@ a {
 .main-searchInput {
     border: none;
     margin: auto;
-    width: 300px;
-    padding: 10px;
+    width: 296px;
+    padding: 12px;
+}
+
+.main-trackList {
+    min-height: 75vh;
+}
+
+.main-trackList-loading {
+    display: flex;
+    height: 128px;
+}
+
+.main-trackList-loading-inner {
+    width: 64px;
+    height: 64px;
+    border: 8px solid transparent;
+    border-radius: 50%;
+    border-top: 8px solid lightgray;
+}
+
+.main-trackList-loading-inner {
+    margin: auto;
+    fill: lightgray;
+    animation: rotate 1s linear infinite;
+}
+
+.main-trackList-trackEntry {
+    margin: 2px;
+}
+
+.main-searchInput,
+.main-trackList-trackEntry {
+    border-radius: 8px;
 }
 
 .main-searchInput:active,
@@ -65,14 +97,6 @@ a {
 
 .main-searchNotice {
     margin: 20px auto;
-}
-
-.main-trackList {
-    min-height: 75vh;
-}
-
-.main-trackList-trackEntry {
-    margin: 2px;
 }
 
 .musicPlayer {
@@ -95,11 +119,6 @@ a {
     width: 100%;
 }
 
-.main-searchInput,
-.main-trackList-trackEntry {
-    border-radius: 8px;
-}
-
 @media only screen and (max-width: 1000px) {
     * {
         font-size: 16px;
@@ -119,6 +138,10 @@ a {
         width: 60%;
     }
 
+    .main-trackList {
+        min-height: 0;
+    }
+
     .musicPlayer {
         width: 100%;
         padding: 0;
@@ -129,5 +152,11 @@ a {
     .musicPlayer-currentTrackName {
         padding-top: 20px;
         padding-left: 10px;
+    }
+}
+
+@keyframes rotate {
+    100% {
+        transform: rotate(360deg);
     }
 }
