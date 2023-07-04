@@ -42,8 +42,9 @@ input:focus {
 .container {
     margin: 10px auto;
     padding: 20px;
-    background-color: #f0f0f0;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    background-color: #F0F0F0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .flex {
@@ -76,6 +77,7 @@ input:focus {
 
 .musicPlayer {
     position: fixed;
+    border-radius: 32px;
     bottom: 0;
     right: 0;
     width: 40%;
@@ -105,7 +107,7 @@ input:focus {
     .afterMain {
         display: block;
         content: " ";
-        height: 150px;
+        height: 128px;
     }
 
     .main-searchInput {
@@ -116,6 +118,7 @@ input:focus {
         width: 100%;
         padding: 0;
         margin: 0;
+        border-radius: 32px 32px 0 0;
     }
 
     .musicPlayer-currentTrackName {
