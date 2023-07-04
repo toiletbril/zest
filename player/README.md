@@ -1,6 +1,7 @@
 # Example player
 
-This example assumes that Zest is running on `http://localhost:6969` and your browser supports decoding of `audio/mpeg` with `MediaSource`.
+This example assumes that Zest is running on `0.0.0.0:6969` on the same machine, and the browser supports decoding of `audio/mpeg` with `MediaSource`.
+
 It also relies on `SourceBuffer` to store audio in memory, which means that max size for one track is ~10mb.
 
 # Quick start

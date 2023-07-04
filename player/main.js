@@ -1,7 +1,8 @@
-const port = 6969;
+const zest_port = 6969;
 const endpoint =
-    'http://' +  window.location.hostname +
-    ':' +  port + `/api/v1/music`;
+    "http://" +
+    `${window.location.hostname}:${zest_port}` +
+    "/api/v1/music";
 
 let updatingBuffers = 0;
 let totalDuration = 0;
