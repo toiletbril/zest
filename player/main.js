@@ -200,14 +200,13 @@ class MusicList {
             trackArray = trackArray.slice(0, 100);
         }
 
-        this.trackListDivElement.innerHTML = "";
+        this.trackListDivElement.innerHTML = null;
 
         trackArray.forEach(trackName => {
             const trackLink = document.createElement("a");
 
             trackLink.href = "#";
             trackLink.className = "main-trackList-trackEntry";
-
             trackLink.innerText = trackName;
 
             trackLink.addEventListener("click", () => {
