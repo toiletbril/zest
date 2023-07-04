@@ -9,34 +9,29 @@ body {
 }
 
 a {
+    text-decoration: none;
+}
+
+.main-trackList-trackEntry {
     display: inline-block;
     padding: 6px 12px;
     color: black;
     background-color: white;
-    text-decoration: none;
-    border: 2px solid white;
-    border-radius: 4px;
     cursor: pointer;
 }
 
-a:hover {
-    border: 2px solid paleturquoise;
+.main-trackList-trackEntry:hover {
+    outline: 2px solid lightblue;
 }
 
-h1 {
+.mainTitle {
     font-size: 24px;
     text-align: center;
 }
 
-h4 {
+.musicPlayer-currentTrackName {
     font-size: 18px;
     margin: 10px 20px;
-}
-
-input:active,
-input:focus {
-    outline: none;
-    border: none;
 }
 
 .container {
@@ -56,11 +51,16 @@ input:focus {
 }
 
 .main-searchInput {
-    border-radius: 4px;
     border: none;
     margin: auto;
     width: 300px;
     padding: 10px;
+}
+
+.main-searchInput:active,
+.main-searchInput:focus {
+    outline: none;
+    border: none;
 }
 
 .main-searchNotice {
@@ -95,7 +95,12 @@ input:focus {
     width: 100%;
 }
 
-@media only screen and (max-width: 600px) {
+.main-searchInput,
+.main-trackList-trackEntry {
+    border-radius: 8px;
+}
+
+@media only screen and (max-width: 1000px) {
     * {
         font-size: 16px;
     }
@@ -107,7 +112,7 @@ input:focus {
     .afterMain {
         display: block;
         content: " ";
-        height: 128px;
+        min-height: 128px;
     }
 
     .main-searchInput {
