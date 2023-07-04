@@ -1,8 +1,11 @@
-body {
-    margin: 0;
-    padding: 0;
-    background: linear-gradient(90deg, lightblue, paleturquoise);;
+* {
     font-family: sans-serif;
+    font-size: 14px;
+    word-break: break-all;
+}
+
+body {
+    background: linear-gradient(90deg, lightblue, paleturquoise);
 }
 
 a {
@@ -21,10 +24,12 @@ a:hover {
 }
 
 h1 {
+    font-size: 24px;
     text-align: center;
 }
 
 h4 {
+    font-size: 18px;
     margin: 10px 20px;
 }
 
@@ -45,12 +50,11 @@ input:focus {
     display: flex;
 }
 
-.header {
+.main {
     width: 50%;
 }
 
-.header-searchInput {
-    font-size: 14px;
+.main-searchInput {
     border-radius: 4px;
     border: none;
     margin: auto;
@@ -58,19 +62,22 @@ input:focus {
     padding: 10px;
 }
 
-.header-searchNotice {
-    font-size: 14px;
+.main-searchNotice {
     margin: 20px auto;
 }
 
-.header-trackList-trackEntry {
+.main-trackList {
+    min-height: 75vh;
+}
+
+.main-trackList-trackEntry {
     margin: 2px;
 }
 
 .musicPlayer {
     position: fixed;
-    right: 0;
     bottom: 0;
+    right: 0;
     width: 40%;
     margin: 30px;
 }
@@ -84,4 +91,35 @@ input:focus {
     padding: 0px;
     margin: 10px auto;
     width: 100%;
+}
+
+@media only screen and (max-width: 600px) {
+    * {
+        font-size: 16px;
+    }
+
+    .main {
+        width: 90%;
+    }
+
+    .afterMain {
+        display: block;
+        content: " ";
+        height: 150px;
+    }
+
+    .main-searchInput {
+        width: 60%;
+    }
+
+    .musicPlayer {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    .musicPlayer-currentTrackName {
+        padding-top: 20px;
+        padding-left: 10px;
+    }
 }

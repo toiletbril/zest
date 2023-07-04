@@ -4,28 +4,30 @@
 <head>
     <title>Zest Example</title>
     <link rel="stylesheet" href="main.css">
-    </style>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
 </head>
 
 <body>
-    <div class="container header">
+    <div class="container main">
         <h1>Zest Music Player</h1>
 
         <div class="flex">
-            <input type="text" class="header-searchInput" id="searchInput" placeholder="Search...">
+            <input type="text" class="main-searchInput" id="searchInput" placeholder="Search...">
         </div>
 
         <div class="flex">
-            <p class="header-searchNotice">Showing first 100 tracks.</p>
+            <p class="main-searchNotice">Showing first 100 tracks.</p>
         </div>
 
-        <div class="header-trackList" id="trackList"></div>
+        <div class="main-trackList" id="trackList"></div>
     </div>
 
     <div class="container musicPlayer">
         <h4 class="musicPlayer-currentTrackName" id="currentTrackName">No track is playing.</h4>
         <audio class="musicPlayer-controls" id="audioControls" controls></audio>
     </div>
+
+    <div class="afterMain"></div>
 
     <script src="main.js"></script>
 </body>

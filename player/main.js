@@ -83,48 +83,46 @@ class AudioPlayer {
 
         let fetchChunks = (url) => new Promise((resolve, reject) => {
             if (!this.shouldFetch) {
-                return resolve();;
+                return resolve();
             }
 
             fetch(url)
-            .then((response) => {
-                return response.arrayBuffer();
-            })
-            .then((arrayBuffer) => {
-                const arrayBufferClone = structuredClone(arrayBuffer); // since extend duration consumes arrayBuffer
-                this.extendDuration(arrayBufferClone);
+                .then((response) => {
+                    return response.arrayBuffer();
+                })
+                .then((arrayBuffer) => {
+                    const arrayBufferClone = structuredClone(arrayBuffer); // since extend duration consumes arrayBuffer
+                    this.extendDuration(arrayBufferClone);
 
-                this.appendBuffer(arrayBuffer);
+                    this.appendBuffer(arrayBuffer);
 
-                const isLastChunk = arrayBuffer.byteLength < this.chunkSize;
+                    const isLastChunk = arrayBuffer.byteLength < this.chunkSize;
 
-                if (!isLastChunk) {
-                    const nextChunkIndex = parseInt(new URL(url).searchParams.get("chunk")) + 1;
-                    const nextUrl = url.replace(/chunk=\d+/, `chunk=${nextChunkIndex}`);
+                    if (!isLastChunk) {
+                        const nextChunkIndex = parseInt(new URL(url).searchParams.get("chunk")) + 1;
+                        const nextUrl = url.replace(/chunk=\d+/, `chunk=${nextChunkIndex}`);
 
-                    fetchChunks(nextUrl);
-                    resolve();
-                } else {
-                    resolve();
-                }
+                        resolve(fetchChunks(nextUrl));
+                    } else {
+                        resolve();
+                    }
                 })
                 .catch((err) => {
-                    console.error("Error appending music chunk:", err)
-                    resolve();
+                    reject(err);
                 });
-            });
+        });
 
-            if (!this.fetching) {
-                this.shouldFetch = true;
-                this.fetching = true;
+        if (!this.fetching) {
+            this.shouldFetch = true;
+            this.fetching = true;
 
-                fetchChunks(url).then(() => {
-                    this.fetching = false;
-                });
-            }
+            fetchChunks(url)
+                .then(() => this.fetching = false)
+                .catch((err) => console.error("Error while fetching:", err));
         }
+    }
 
-        extendDuration(arrayBuffer) {
+    extendDuration(arrayBuffer) {
         const audioContext = new AudioContext();
 
         return audioContext.decodeAudioData(arrayBuffer)
@@ -150,7 +148,7 @@ class AudioPlayer {
             this.audioPlayer.src = "";
             this.audioPlayer.currentTime = 0;
             this.initialize();
-        }
+        };
 
         return new Promise((resolve) => {
             const interval = setInterval(() => {
@@ -170,9 +168,9 @@ class AudioPlayer {
                 try {
                     this.mediaSource.duration = this.totalDuration;
                     this.audioPlayer.duration = this.totalDuration;
-                } catch {}
+                } catch { }
             }
-        }, 200)
+        }, 200);
     }
 }
 
@@ -205,7 +203,7 @@ class MusicList {
             const trackLink = document.createElement("a");
 
             trackLink.href = "#";
-            trackLink.className = "header-trackList-trackEntry";
+            trackLink.className = "main-trackList-trackEntry";
 
             trackLink.innerText = trackName;
 
@@ -222,9 +220,10 @@ class MusicList {
     }
 
     searchTracks(event) {
-        const searchTerm = searchInput.value.trim().toLowerCase();
+        const searchTerm = this.searchInputElement.value.trim().toLowerCase();
+
         if (searchTerm === "") {
-            updateMusicList(allTracks);
+            this.updateTrackListElement(this.trackList);
         } else if (event.key === "Enter") {
             const filteredTracks = this.trackList
                 .filter(track => track.toLowerCase().includes(searchTerm));
@@ -244,12 +243,12 @@ window.onload = () => {
 
     musicList.fetchTrackList();
 
-    searchInput.addEventListener("input", musicList.searchTracks);
-    searchInput.addEventListener("keyup", musicList.searchTracks);
+    searchInput.addEventListener("input", (event) => musicList.searchTracks(event));
+    searchInput.addEventListener("keyup", (event) => musicList.searchTracks(event));
 
     if (!MediaSource.isTypeSupported("audio/mpeg")) {
         alert(
             "Your browser does not support decoding of audio/mpeg, and playing music will not work.\n\n" +
             "To use this application, please install a compatible decoder, such as ffmpeg, or use Edge or Chromium.");
     }
-}
+};
