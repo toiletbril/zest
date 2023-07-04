@@ -1,4 +1,7 @@
-const endpoint = `http://localhost:6969/api/v1/music`;
+const port = 6969;
+const endpoint =
+    'http://' +  window.location.hostname +
+    ':' +  port + `/api/v1/music`;
 
 let updatingBuffers = 0;
 let totalDuration = 0;
@@ -15,6 +18,7 @@ function fetchMusic(trackName) {
         const url = endpoint + `/get?name=${encodeURIComponent(trackName)}&chunk=0`;
         let sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
         appendChunks(sourceBuffer, mediaSource, url);
+        console.log("Hello World");
     });
 
     mediaSource.addEventListener("error", error => {
