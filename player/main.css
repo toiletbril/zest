@@ -62,7 +62,6 @@ a {
 }
 
 .main-trackList-loading {
-    display: flex;
     height: 128px;
 }
 
