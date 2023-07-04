@@ -1,5 +1,6 @@
 - Documentation for example frontend.
 - Transcode everything to webm?
+- Audio queue for frontend.
 - JSON struct.
 - URI decoding for very weird UTF-8 names.
 - Investigate "bad headers" error.
