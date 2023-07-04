@@ -8,7 +8,7 @@ Initially built with no dependencies (and possibly not up to any of HTTP standar
 
 ## Player
 
-Zest ships with [default browser-based player](./player/README.md).
+Zest ships with [default browser-based player](./player/).
 
 ## Limitations
 - Only `mp3` files are supported for now.
