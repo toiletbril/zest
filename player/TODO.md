@@ -1,0 +1,3 @@
+- Auto-start.
+- Shuffle.
+- Bypass `SourceBuffer` max size.
