@@ -25,7 +25,7 @@ use music::index::make_index;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const DEFAULT_ADDRESS: &str = "localhost";
+const DEFAULT_ADDRESS: &str = "0.0.0.0";
 const DEFAULT_PORT: u32 = 6969;
 const DEFAULT_THREAD_COUNT: usize = 8;
 const DEFAULT_UTC: u64 = 0;
