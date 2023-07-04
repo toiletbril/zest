@@ -43,7 +43,7 @@ input:focus {
     margin: 10px auto;
     padding: 20px;
     border-radius: 16px;
-    background-color: #F0F0F0;
+    background-color: whitesmoke;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
