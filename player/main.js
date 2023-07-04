@@ -1,3 +1,4 @@
+// Configure this as needed.
 const ZEST_PORT = 6969;
 const ENDPOINT =
     "http://" +

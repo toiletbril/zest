@@ -6,9 +6,13 @@ This project is in very early state, and is pretty much a prototype. The main go
 
 Initially built with no dependencies (and possibly not up to any of HTTP standarts). As I continue the development, dependencies will be listed in [`Cargo.toml`](./Cargo.toml).
 
+## Player
+
+Zest ships with [default browser-based player](./player/README.md).
+
 ## Limitations
 - Only `mp3` files are supported for now.
-- As no SSL or authorization is planned yet, for real-world usage you will need to pair Zest with reverse proxy that supports everything you need.
+- As no SSL or authorization is planned yet, for real-world backend usage you will need to pair Zest with reverse proxy that supports everything you need.
 
 ## Building
 

@@ -1,8 +1,10 @@
-# Example player
+# Zest Player
 
-This example assumes that Zest is running on `0.0.0.0:6969` on the same machine, and the browser supports decoding of `audio/mpeg` with `MediaSource`.
+With default settings, this app assumes that Zest is running on `0.0.0.0:6969` on the same machine, and the browser supports decoding of `audio/mpeg` with `MediaSource`.
 
-It also relies on `SourceBuffer` to store audio in memory, which means that max size for one track is ~10mb.
+For now, it relies on `SourceBuffer` to store audio in memory, which means that max size for one track is ~10mb.
+
+You can edit default address in [main.js](./main.js).
 
 # Quick start
 
