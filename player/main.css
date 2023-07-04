@@ -28,6 +28,12 @@ h4 {
     margin: 10px 20px;
 }
 
+input:active,
+input:focus {
+    outline: none;
+    border: none;
+}
+
 .container {
     margin: 10px auto;
     padding: 20px;
@@ -35,38 +41,15 @@ h4 {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-.music-list {
-    width: 50%;
-}
-
 .flex {
     display: flex;
 }
 
-.player {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    width: 40%;
-    margin: 30px;
+.header {
+    width: 50%;
 }
 
-.track {
-    margin: 2px;
-}
-
-#track-name {
-    margin: 10px;
-}
-
-#audio-player {
-    background: none;
-    padding: 0px;
-    margin: 10px auto;
-    width: 100%;
-}
-
-#search-input {
+.header-searchInput {
     font-size: 14px;
     border-radius: 4px;
     border: none;
@@ -75,13 +58,30 @@ h4 {
     padding: 10px;
 }
 
-.search-notice {
+.header-searchNotice {
     font-size: 14px;
     margin: 20px auto;
 }
 
-input:active,
-input:focus {
-    outline: none;
-    border: none;
+.header-trackList-trackEntry {
+    margin: 2px;
+}
+
+.musicPlayer {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    width: 40%;
+    margin: 30px;
+}
+
+.musicPlayer-currentTrackName {
+    margin: 10px;
+}
+
+.musicPlayer-controls {
+    background: none;
+    padding: 0px;
+    margin: 10px auto;
+    width: 100%;
 }

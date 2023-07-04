@@ -8,23 +8,25 @@
 </head>
 
 <body>
-    <div class="container music-list">
+    <div class="container header">
         <h1>Zest Music Player</h1>
 
         <div class="flex">
-            <input type="text" id="search-input" placeholder="Search...">
+            <input type="text" class="header-searchInput" id="searchInput" placeholder="Search...">
         </div>
 
         <div class="flex">
-            <p class="search-notice">Showing first 100 tracks.</p>
+            <p class="header-searchNotice">Showing first 100 tracks.</p>
         </div>
 
-        <div id="tracks"></div>
+        <div class="header-trackList" id="trackList"></div>
     </div>
-    <div class="container player">
-        <h4 id="track-name">No track is playing.</h4>
-        <audio id="audio-player" controls></audio>
+
+    <div class="container musicPlayer">
+        <h4 class="musicPlayer-currentTrackName" id="currentTrackName">No track is playing.</h4>
+        <audio class="musicPlayer-controls" id="audioControls" controls></audio>
     </div>
+
     <script src="main.js"></script>
 </body>
 
