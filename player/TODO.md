@@ -1,3 +1,6 @@
+- Metadata?
 - Auto-start.
 - Shuffle.
-- Bypass `SourceBuffer` max size.
+- Folders.
+- Rooms.
+- Bypass `SourceBuffer` max size or use something else.

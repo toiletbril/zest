@@ -1,18 +1,20 @@
 # Zest
 
-Music-streaming web-server.
+Web-server with main goal of streaming music in small chunks from all `mp3` files of any bitrate from a folder and it's subfolders. The rest will be decided later.
 
-This project is in very early state, and is pretty much a prototype. The main goal is an ability to stream music in chunks from all `mp3` files of any bitrate from a folder and it's subfolders. The rest will be decided later.
-
-Initially built with no dependencies (and possibly not up to any of HTTP standarts). As I continue the development, dependencies will be listed in [`Cargo.toml`](./Cargo.toml).
-
-## Player
-
-Zest ships with [default browser-based player](./player/).
+Initially built with no dependencies (and possibly not up to any of HTTP standarts).
 
 ## Limitations
 - Only `mp3` files are supported for now.
 - As no SSL or authorization is planned yet, for real-world backend usage you will need to pair Zest with reverse proxy that supports everything you need.
+
+## Player
+
+Zest comes with a [default player/frontend](./player/).
+
+## API
+
+API documentation can be viewed [here](./API.md).
 
 ## Building
 
@@ -34,7 +36,7 @@ You can also run the executable directly with:
 $ cargo run --release -- <...>
 ```
 
-## Running the web-server
+## Running
 
 First, you will need to index a music directory. For example:
 ```console
@@ -44,7 +46,7 @@ Traversing '/run/media/music'...
 Successfully traversed '/run/media/music', generated index file './zest-index-0.json'.
 ```
 
-Then you can serve it:
+Then you can run Zest by serving the generated index:
 ```console
 $ zest serve zest-index-0.json -p 1234 -t 16 -l -u 3
 Running Zest web-server, version 0.4.0-unstable (c) toiletbril <https://github.com/toiletbril>
@@ -52,80 +54,4 @@ Running Zest web-server, version 0.4.0-unstable (c) toiletbril <https://github.c
 2 [18:13:16] ThreadId(1) -> MAIN: Starting the logger...
 3 [18:13:16] ThreadId(2) -> DISPATCHER: Binding to <http://localhost:1234>...
 4 [18:13:16] ThreadId(2) -> DISPATCHER: Started. Available threads: 16.
-```
-
-### Help
-
-```console
-$ zest --help
-USAGE: zest [-options] <subcommand>
-Music-streaming web-server.
-
-SUBCOMMANDS:  serve <index file>     	Serve the music.
-              index <directory>      	Index directory and make an index file.
-
-OPTIONS:      -p, --port <port>      	Set server's port.
-              -a, --address <adress> 	Set server's address.
-              -t, --threads <count>  	Threads to create.
-              -u, --utc <hours>      	UTC adjustment for logger.
-              -l, --log-file         	Create a log file.
-
-0.4.0-unstable (c) toiletbril <https://github.com/toiletbril>
-```
-
-## Endpoints
-
-All endpoints the API are prefixed with `/api/v1/music`.
-
-### Chunk of music file
-
-Returns a specified chunk of a music file.
-
-- Method: `GET`
-- Endpoint: `/get`
-- Parameters:
-  - `name` (string, required): The name of the music track.
-  - `chunk` (integer, default is 0): The index of the 512kb chunk.
-- Response:
-  - `Content-Type`: `audio/mpeg`
-  - Body: The chunk of the specified music file.
-- Errors:
-  - `416 Requested Range Not Satisfiable`: When the specified `chunk` is out of range for the music file.
-  - `400 Bad Request`: When the `name` parameter is not specified.
-
-Example Request:
-```http
-GET /api/v1/music/get?name=HelloWorld&chunk=2 HTTP/1.1
-Origin: some-domain.com
-```
-
-Example Response:
-```http
-HTTP/1.1 200 OK
-Content-Type: audio/mpeg
-
-<Chunk of the music file specified>
-```
-
-### List of available track names
-Returns a list of all available music track names.
-
-- Method: `GET`
-- Endpoint: `/all`
-- Response:
-    - `Content-Type`: `application/json`
-    - Body: An array containing all available music track names.
-
-  Example Request:
-```http
-GET /api/v1/music/all HTTP/1.1
-Origin: some-domain.com
-```
-
-Example response:
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-[ "track1", "track2", "track3" ]
 ```

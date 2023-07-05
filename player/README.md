@@ -18,4 +18,4 @@ Start a python web-server to serve this folder:
 $ python3 -m http.server <port>
 ```
 
-This page will be available to everyone who has access to that port, so they can enjoy your music too :3c
+This way, the page will be available to everyone who has access to that port, so they can enjoy your music too :3c
