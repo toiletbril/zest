@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::{Error, Read, Seek, SeekFrom};
 
-use crate::common::util::{make_json_array_string, Am};
+use crate::common::util::{iter_to_json_string, Am};
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
 use crate::{log, Log, Logger};
@@ -10,37 +10,39 @@ use super::index::get_music_index;
 
 const CHUNK_SIZE: usize = 1024 * 128; // 128 kb
 
-pub fn list_handler<'a>(connection: &mut HttpConnection, logger: &Am<Logger>) -> Result<(), Error> {
+pub fn list_handler(connection: &mut HttpConnection, logger: &Am<Logger>) -> Result<(), Error> {
     let index = get_music_index();
-        log!(logger, "Responding with music list to {:?}",
-            connection.stream());
 
-        return HttpResponse::new(200, "OK")
-            .allow_all_origins(connection)
-            .set_json_body(&make_json_array_string(index.map().keys()))
-            .send(connection);
+    log!(logger, "Responding with music list to {:?}", connection.stream());
+
+    return HttpResponse::new(200, "OK")
+        .allow_all_origins(connection)
+        .set_json_body(&iter_to_json_string(index.map().keys()))
+        .send(connection);
 }
 
-pub fn chunk_handler<'a>(
+pub fn chunk_handler(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
 ) -> Result<(), Error> {
     let params = connection.params();
 
-    let chunk: usize = params
+    let chunk = params
         .and_then(|x| x.get("chunk"))
         .and_then(|x| x.parse::<usize>().ok())
-        .unwrap_or(0);
+        .unwrap_or(0 as usize);
 
-    let track_result = params.and_then(|x| x.get("name"));
+    let track_result = params
+        .and_then(|x| x.get("name"));
 
     if let Some(filename) = track_result {
         let index = get_music_index();
-        let filepath = index.map().get(filename);
+
+        let filepath = get_music_index().map().get(filename);
 
         if let Some(path) = filepath {
-            return serve_music_chunk(connection, logger, chunk,
-                                    format!("{}{}", index.path(), path));
+            let music_path = format!("{}{}", index.path(), path);
+            return serve_music_chunk(connection, logger, chunk, music_path);
         } else {
             return Ok(HttpResponse::new(404, "Not Found")
                 .set_json_body(&"{ \"message\": \"Track specified was not found\" }")
@@ -55,7 +57,7 @@ pub fn chunk_handler<'a>(
         .send(connection)
 }
 
-fn serve_music_chunk<'a>(
+fn serve_music_chunk(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
     chunk_index: usize,
@@ -70,9 +72,9 @@ fn serve_music_chunk<'a>(
 
     if max_size < start_pos {
         return HttpResponse::new(416, "Range Not Satisfiable")
-            .set_json_body(&"{ \"message\": \"Chunk is out of bounds.\" }")
-            .allow_all_origins(connection)
-            .send(connection);
+                .set_json_body(&"{ \"message\": \"Chunk is out of bounds.\" }")
+                .allow_all_origins(connection)
+                .send(connection);
     }
 
     file.seek(SeekFrom::Start(start_pos as u64))?;

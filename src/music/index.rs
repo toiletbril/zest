@@ -57,7 +57,6 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
 
     let mut cursor_position = 0;
 
-    let mut char_buf = vec![];
     let mut buffer = [0; 1];
 
     let mut read_key = false;
@@ -67,7 +66,6 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
 
     loop {
         let size = reader.read(&mut buffer)?;
-        char_buf.extend(buffer);
 
         if size == 0 {
             break;
@@ -115,8 +113,6 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
             }
         }
 
-        char_buf.clear();
-
         if &key == "path" && !value.is_empty() {
             index_path = value.clone();
         }
@@ -137,7 +133,7 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
     })
 }
 
-pub fn make_index(path: FilePath) -> Result<String, Error> {
+pub fn make_index(path: &FilePath) -> Result<String, Error> {
     make_index_file(recurse_music(&path)?, path)
 }
 
@@ -174,7 +170,7 @@ fn recurse_music(path: &String) -> Result<HashMap<FileName, FilePath>, Error> {
     internal(path, path.len())
 }
 
-fn make_index_file(index: HashMap<FileName, FilePath>, path: FilePath) -> Result<String, Error> {
+fn make_index_file(index: HashMap<FileName, FilePath>, path: &FilePath) -> Result<String, Error> {
     let mut i = 0;
 
     while Path::new(format!("./zest-index-{}.json", i).as_str()).exists() {

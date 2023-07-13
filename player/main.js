@@ -1,25 +1,28 @@
-// Configure this as needed.
 const ZEST_PORT = 6969;
-const ZEST_ADDRESS = window.location.hostname;
+const ZEST_ADDRESS = window.location.hostname; // same machine
 const CHUNK_SIZE = 1024 * 128; // 128 kb
 
-const ENDPOINT =
+const MUSIC_ENDPOINT =
     "http://" +
     `${ZEST_ADDRESS}:${ZEST_PORT}` +
     "/api/v1/music";
 
 class AudioPlayer {
-    constructor (audioPlayer, chunkSize) {
+    constructor(audioPlayer) {
         this.audioPlayer = audioPlayer;
-        this.chunkSize = chunkSize;
-        this.shouldFetch = false;
-        this.fetching = false;
 
-        this.initialize();
+        this.initFetch();
+        this.initSource();
     }
 
-    initialize() {
+    initFetch() {
+        this.shouldFetch = false;
+        this.fetching = false;
+    }
+
+    initSource() {
         this.mediaSource = new MediaSource();
+
         this.totalDuration = 0;
         this.audioBuffer = null;
         this.audioQueue = [];
@@ -69,7 +72,7 @@ class AudioPlayer {
     }
 
     setPlayingTrackName(trackName) {
-        document.title = trackName + " - Zest Player";
+        document.title = trackName + " | Zest Player";
         document.getElementById("currentTrackName").textContent = trackName;
     }
 
@@ -82,7 +85,7 @@ class AudioPlayer {
     }
 
     fetchTrack(trackName) {
-        const url = ENDPOINT + `/get?name=${encodeURIComponent(trackName)}&chunk=0`;
+        const url = MUSIC_ENDPOINT + `/get?name=${encodeURIComponent(trackName)}&chunk=0`;
 
         let fetchChunks = (url) => new Promise((resolve, reject) => {
             if (!this.shouldFetch) {
@@ -99,7 +102,7 @@ class AudioPlayer {
 
                     this.appendBuffer(arrayBuffer);
 
-                    const isLastChunk = arrayBuffer.byteLength < this.chunkSize;
+                    const isLastChunk = arrayBuffer.byteLength < CHUNK_SIZE;
 
                     if (!isLastChunk) {
                         const nextChunkIndex = parseInt(new URL(url).searchParams.get("chunk")) + 1;
@@ -135,12 +138,18 @@ class AudioPlayer {
             .catch(() => "hii :3");
     }
 
-    async playTrack(trackName) {
-        await this.reset();
+    resetAndPlayTrack(trackName) {
+        this.reset().then(() => {
+            this.playTrack(trackName);
+        });
+    }
 
+    playTrack(trackName) {
         this.fetchTrack(trackName);
         this.setPlayingTrackName(trackName);
+
         this.resume();
+
         this.waitForDuration();
     }
 
@@ -150,7 +159,7 @@ class AudioPlayer {
         const resetPlayer = () => {
             this.audioPlayer.src = "";
             this.audioPlayer.currentTime = 0;
-            this.initialize();
+            this.initSource();
         };
 
         return new Promise((resolve) => {
@@ -186,7 +195,7 @@ class MusicList {
     }
 
     fetchTrackList() {
-        fetch(ENDPOINT + "/all")
+        fetch(MUSIC_ENDPOINT + "/all")
             .then((response) => response.json())
             .then((trackNames) => {
                 this.trackList = trackNames;
@@ -211,7 +220,7 @@ class MusicList {
 
             trackLink.addEventListener("click", () => {
                 event.preventDefault();
-                this.player.playTrack(trackName);
+                this.player.resetAndPlayTrack(trackName);
             });
 
             const trackItem = document.createElement("div");
@@ -228,7 +237,7 @@ class MusicList {
             this.updateTrackListElement(this.trackList);
         } else if (event.key === "Enter") {
             const filteredTracks = this.trackList
-                .filter(track => track.toLowerCase().includes(searchTerm));
+                .filter((track) => track.toLowerCase().includes(searchTerm));
 
             this.updateTrackListElement(filteredTracks);
         }
@@ -251,6 +260,7 @@ window.onload = () => {
     if (!MediaSource.isTypeSupported("audio/mpeg")) {
         alert(
             "Your browser does not support decoding of audio/mpeg, and playing music will not work.\n\n" +
-            "To use this application, please install a compatible decoder, such as ffmpeg, or use Edge or Chromium.");
+            "To use this application, please install a compatible decoder, such as ffmpeg, or use Edge or Chromium."
+        );
     }
 };

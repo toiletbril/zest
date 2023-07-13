@@ -5,21 +5,23 @@ use std::thread::current;
 use std::time::SystemTime;
 
 pub trait Log {
+    /// Push a message into log queue.
     fn log(&mut self, message: String);
+    /// Flush the contents of the log queue and clear it.
     fn flush(&mut self) -> Result<(), Error>;
 }
 
+/// Quickly flush the logger behind Arc<Mutex>.
 #[macro_export]
 macro_rules! flush {
     ($logger:ident) => {
         if let Ok(mut $logger) = $logger.lock() {
-            $logger.flush()
-        } else {
-            unreachable!();
+            let _ = $logger.flush();
         }
     };
 }
 
+/// Generate a string with current UTC time.
 #[macro_export]
 macro_rules! time {
     ($utc:expr) => {{
@@ -28,13 +30,16 @@ macro_rules! time {
             .expect("Should be able to get time")
             .as_secs()
             + $utc * 3600;
+
         let _secs = _duration % 60;
         let _mins = (_duration / 60) % 60;
         let _hrs = (_duration / 3600) % 24;
+
         format!("{:02}:{:02}:{:02}", _hrs, _mins, _secs)
     }};
 }
 
+/// Quickly lock and push a message into the logger behind Arc<Mutex>.
 #[macro_export]
 macro_rules! log {
     ($logger:expr, $($msg:expr),*) => {
@@ -47,7 +52,7 @@ macro_rules! log {
 type LogQueue = Vec<String>;
 
 pub struct Logger {
-    index: usize,
+    index: u64,
     queue: LogQueue,
     hour_offset: u64,
     log_file: Option<File>,
@@ -101,9 +106,10 @@ impl Log for Logger {
             for entry in &self.queue {
                 self.log_file.as_ref()
                     .map(|mut x| write!(x, "{}\n", entry));
+
                 println!("{}", entry);
             }
-            
+
             self.queue.clear();
         }
 

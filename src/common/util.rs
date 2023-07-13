@@ -7,8 +7,7 @@ pub type FilePath = String;
 pub type FileName = String;
 pub type IndexMap = HashMap<FileName, FilePath>;
 
-pub fn make_json_array_string<I: Iterator<Item = impl AsRef<str>>>(iter: I) -> String
-{
+pub fn iter_to_json_string<I: Iterator<Item = impl AsRef<str>>>(iter: I) -> String {
     let mut s = String::from("[");
 
     let mut peekable = iter.peekable();

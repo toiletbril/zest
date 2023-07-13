@@ -134,14 +134,15 @@ fn entry() -> Result<(), String> {
                                        program_name));
             }
 
-            let config = args[1].to_owned();
-            println!("Traversing '{}'...", config);
+            let path = args[1].to_owned();
 
-            match make_index(config.to_owned()) {
-                Err(err) => return Err(format!("Could not index '{}': {}", config, err)),
+            println!("Traversing '{}'...", path);
+
+            match make_index(&path) {
+                Err(err) => return Err(format!("Could not index '{}': {}", path, err)),
                 Ok(filename) => {
-                    println!("Successfully traversed '{}', generated index file '{}'.",
-                             config, filename)
+                    println!("Successfully traversed '{}', created '{}'.",
+                             path, filename)
                 }
             }
 
