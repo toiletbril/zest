@@ -4,7 +4,7 @@
 - Investigate "bad headers" error.
 - kill() for ThreadPool.
 - Hot reindexing.
-- Verbosity levels for logger.
+- Adjust verbose logging.
 - Dates for logger (impossible).
 - Parse HTTP versions.
 - More effective index.
