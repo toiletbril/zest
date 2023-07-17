@@ -13,7 +13,7 @@ const CHUNK_SIZE: usize = 1024 * 128; // 128 kb
 pub fn list_handler(connection: &mut HttpConnection, logger: &Am<Logger>) -> Result<(), Error> {
     let index = get_music_index();
 
-    log!(logger, "Responding with music list to {:?}", connection.stream());
+    log!(logger, 1, "Responding with music list to {:?}", connection.stream());
 
     return HttpResponse::new(200, "OK")
         .allow_all_origins(connection)
@@ -63,7 +63,7 @@ fn serve_music_chunk(
     chunk_index: usize,
     path: String,
 ) -> Result<(), Error> {
-    log!(logger, "Reading from '{}'...", path);
+    log!(logger, 1, "Reading from '{}'...", path);
 
     let mut file = File::open(&path)?;
     let max_size = file.metadata().map(|x| x.len()).unwrap_or(0) as usize;
@@ -87,7 +87,7 @@ fn serve_music_chunk(
         }
     };
 
-    log!(logger, "Serving a chunk '{}' [{}..{}] to {:?}.",
+    log!(logger, 1, "Serving a chunk '{}' [{}..{}] to {:?}.",
          path, start_pos, start_pos + CHUNK_SIZE, connection.stream());
 
     return HttpResponse::new(200, "OK")

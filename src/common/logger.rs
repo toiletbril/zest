@@ -6,7 +6,7 @@ use std::time::SystemTime;
 
 pub trait Log {
     /// Push a message into log queue.
-    fn log(&mut self, message: String);
+    fn log(&mut self, verbosity: u8, message: String);
     /// Flush the contents of the log queue and clear it.
     fn flush(&mut self) -> Result<(), Error>;
 }
@@ -42,24 +42,30 @@ macro_rules! time {
 /// Quickly lock and push a message into the logger behind Arc<Mutex>.
 #[macro_export]
 macro_rules! log {
-    ($logger:expr, $($msg:expr),*) => {
+    ($logger:expr, $verbosity:expr, $($msg:expr),*) => {
         if let Ok(mut logger) = $logger.lock() {
-            logger.log(format!($($msg),*));
+            logger.log($verbosity, format!($($msg),*));
         }
     };
 }
 
-type LogQueue = Vec<String>;
+struct LogEntry {
+    message: String,
+    verbosity: u8
+}
+
+type LogQueue = Vec<LogEntry>;
 
 pub struct Logger {
     index: u64,
     queue: LogQueue,
     hour_offset: u64,
     log_file: Option<File>,
+    verbosity: u8,
 }
 
 impl Logger {
-    pub fn new(utc: u64, use_file: bool) -> Self {
+    pub fn new(utc: u64, use_file: bool, verbosity: u8) -> Self {
         let mut i = 0;
 
         let file = use_file.then(|| {
@@ -82,21 +88,20 @@ impl Logger {
             queue: vec![],
             hour_offset: utc,
             log_file: file,
+            verbosity: verbosity
         };
     }
 }
 
 impl Log for Logger {
-    fn log(&mut self, message: String) {
-        self.queue.push(
+    fn log(&mut self, verbosity: u8, message: String) {
+        let message =
             format!("{} [{}] {:?} -> {}: {}",
-                    self.index,
-                    time!(self.hour_offset),
-                    current().id(),
-                    current().name()
-                        .map_or("MAIN".to_string(), |x| x.to_uppercase()),
-                    message
-        ));
+                    self.index, time!(self.hour_offset), current().id(),
+                    current().name().map_or("MAIN".to_string(), |x| x.to_uppercase()),
+                    message);
+
+        self.queue.push(LogEntry { message: message, verbosity: verbosity });
 
         self.index += 1;
     }
@@ -104,10 +109,12 @@ impl Log for Logger {
     fn flush(&mut self) -> Result<(), Error> {
         if !&self.queue.is_empty() {
             for entry in &self.queue {
-                self.log_file.as_ref()
-                    .map(|mut x| write!(x, "{}\n", entry));
+                if entry.verbosity <= self.verbosity {
+                    self.log_file.as_ref()
+                        .map(|mut x| write!(x, "{}\n", entry.message));
 
-                println!("{}", entry);
+                    println!("{}", entry.message);
+                }
             }
 
             self.queue.clear();

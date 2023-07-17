@@ -21,17 +21,17 @@ pub fn start_dispatcher<'a>(
     logger: Am<Logger>,
     job: DispatcherJob,
 ) -> Result<(), std::io::Error> {
-    log!(logger, "Binding to <http://{address}>...");
+    log!(logger, 0, "Binding to <http://{address}>...");
     let listener = TcpListener::bind(address)?;
     let thread_pool = ThreadPool::new(thread_count, logger.clone());
 
-    log!(logger,
+    log!(logger, 0,
         "Started. Available threads: {}.", thread_pool.size());
 
     for connection in listener.incoming() {
         match connection {
             Ok(stream) => {
-                log!(logger, "Received a connection '{}'", stream.peer_addr()?);
+                log!(logger, 0, "Received a connection '{}'", stream.peer_addr()?);
 
                 let logger_clone = logger.clone();
 
@@ -40,7 +40,7 @@ pub fn start_dispatcher<'a>(
                 });
             }
             Err(err) => {
-                log!(logger,
+                log!(logger, 0,
                     "*** An error has occured while receiving stream: {}", err);
             }
         }
@@ -59,18 +59,18 @@ fn handle_stream<'a>(
     let connection = HttpConnection::new(stream);
 
     if let Ok(mut connection) = connection {
-        log!(logger, "Handling {:?}", connection);
+        log!(logger, 2, "Handling {:?}", connection);
 
         if let Err(err) = job(&mut connection, &logger) {
             HttpResponse::new(500, "Internal Server Error")
                 .allow_all_origins(&connection)
                 .send(&mut connection)?;
 
-            log!(logger, "*** An internal error has occured: {}", err);
+            log!(logger, 0, "*** An internal error has occured: {}", err);
 
             Err(err)
         } else {
-            log!(logger, "Closing {:?}", connection.stream());
+            log!(logger, 0, "Closing {:?}", connection.stream());
 
             drop(connection);
             Ok(())
@@ -78,7 +78,7 @@ fn handle_stream<'a>(
     } else {
         let err = connection.unwrap_err();
 
-        log!(logger,
+        log!(logger, 0,
             "*** An error has occured while parsing connection: {}", err);
 
         Err(Box::new(err))

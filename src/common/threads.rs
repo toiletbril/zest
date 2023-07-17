@@ -25,7 +25,7 @@ impl Worker {
                 let to_exec = match receiver_clone.lock() {
                     Ok(queue) => queue.recv(),
                     Err(err) => {
-                        log!(logger, "*** Shutting down: {}", err);
+                        log!(logger, 0, "*** Shutting down: {}", err);
                         break;
                     }
                 };
@@ -97,11 +97,11 @@ impl ThreadPool {
 
 impl Drop for ThreadPool {
     fn drop(&mut self) {
-        log!(self.logger, "Dropping thread pool...");
+        log!(self.logger, 0, "Dropping thread pool...");
         drop(self.sender.take());
 
         for worker in &mut self.workers {
-            log!(self.logger, "Dropping worker {}...", worker.id);
+            log!(self.logger, 1, "Dropping worker {}...", worker.id);
             if let Some(thread) = worker.handle.take() {
                 thread.join().unwrap();
             }

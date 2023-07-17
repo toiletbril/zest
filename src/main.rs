@@ -29,6 +29,7 @@ const DEFAULT_ADDRESS: &str = "0.0.0.0";
 const DEFAULT_PORT: u32 = 6969;
 const DEFAULT_THREAD_COUNT: usize = 8;
 const DEFAULT_UTC: u64 = 0;
+const DEFAULT_VERBOSITY: u8 = 0;
 
 fn entry() -> Result<(), String> {
     let mut args = args();
@@ -39,6 +40,7 @@ fn entry() -> Result<(), String> {
     let mut thread_count_flag;
     let mut utc_flag;
     let mut log_file_flag;
+    let mut verbosity_flag;
 
     let mut show_version;
     let mut show_help;
@@ -50,7 +52,8 @@ fn entry() -> Result<(), String> {
         utc_flag: StringFlag,          ["-u", "--utc"],
         port_flag: StringFlag,         ["-p", "--port"],
         address_flag: StringFlag,      ["-a", "--address"],
-        log_file_flag: BoolFlag,       ["-l", "--log-file"]
+        log_file_flag: BoolFlag,       ["-l", "--log-file"],
+        verbosity_flag: RepeatFlag,    ["-v", "--verbose"]
     );
 
     let args = parse_flags(&mut args, &mut flags)?;
@@ -67,9 +70,12 @@ fn entry() -> Result<(), String> {
     let utc = utc_flag
         .parse::<u64>()
         .unwrap_or(DEFAULT_UTC);
+    let verbosity =
+        if (0..=3).contains(&verbosity_flag) { verbosity_flag as u8 }
+        else { DEFAULT_VERBOSITY };
 
     if show_help {
-        println!("USAGE: {} [-options] [subcommand]", program_name);
+        println!("USAGE: {} [-options] <subcommand>", program_name);
         println!("Music-streaming web-server.");
         println!("");
         println!("SUBCOMMANDS:  serve <index file>     \tServe the music.");
@@ -80,6 +86,7 @@ fn entry() -> Result<(), String> {
         println!("              -t, --threads <count>  \tThreads to create.");
         println!("              -u, --utc <hours>      \tUTC adjustment for logger.");
         println!("              -l, --log-file         \tWrite logs to a log file.");
+        println!("              -v[vv]                \tLogging verbosity.");
         println!("                  --help             \tDisplay this message.");
         println!("                  --version          \tDisplay version.");
         return Ok(());
@@ -105,10 +112,10 @@ fn entry() -> Result<(), String> {
 
             init_music_index(args[1].to_owned())?;
 
-            let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag)));
+            let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag, verbosity)));
             let logger_clone = logger.clone();
 
-            log!(logger, "Starting the dispatcher...");
+            log!(logger, 0, "Starting the dispatcher (threads: {})...", thread_count);
 
             Builder::new()
                 .name("dispatcher".to_string())
@@ -121,7 +128,7 @@ fn entry() -> Result<(), String> {
                     );
                 }).map_err(|err| err.to_string())?;
 
-            log!(logger, "Starting the logger...");
+            log!(logger, 0, "Starting the logger (logfile: {}, verbosity: {})...", log_file_flag, verbosity);
 
             loop {
                 let _ = flush!(logger);
