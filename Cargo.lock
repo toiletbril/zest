@@ -4,13 +4,13 @@ version = 3
 
 [[package]]
 name = "toiletcli"
-version = "0.4.1"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1df303940ab1e260615e9842533a4941b79587a85f60bb5480d4d77a35c9aa8e"
+checksum = "36f2ea20f6eeca24a02b914485b9a74afe6c0a89b351a5182878d994b8346c3a"
 
 [[package]]
 name = "zest"
-version = "0.4.5-unstable"
+version = "0.5.0-unstable"
 dependencies = [
  "toiletcli",
 ]

@@ -1,6 +1,6 @@
 [package]
 name = "zest"
-version = "0.4.5-unstable"
+version = "0.5.0-unstable"
 edition = "2021"
 authors = ["toiletbril"]
 
@@ -10,4 +10,4 @@ strip = true
 lto = true
 
 [dependencies]
-toiletcli = "0.4.1"
+toiletcli = "0.5.1"
