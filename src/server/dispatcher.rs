@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::net::{TcpListener, TcpStream};
 
-use crate::common::logger::{Log, Logger};
+use crate::{common::logger::{Log, Logger, Verbosity}, log_matching_verbosity};
 use crate::common::threads::ThreadPool;
 use crate::common::util::Am;
 use crate::http::connection::HttpConnection;
@@ -21,17 +21,17 @@ pub fn start_dispatcher<'a>(
     logger: Am<Logger>,
     job: DispatcherJob,
 ) -> Result<(), std::io::Error> {
-    log!(logger, 0, "Binding to <http://{address}>...");
+    log!(logger, Verbosity::Default, "Binding to <http://{address}>...");
     let listener = TcpListener::bind(address)?;
     let thread_pool = ThreadPool::new(thread_count, logger.clone());
 
-    log!(logger, 0,
+    log!(logger, Verbosity::Default,
         "Started. Available threads: {}.", thread_pool.size());
 
     for connection in listener.incoming() {
         match connection {
             Ok(stream) => {
-                log!(logger, 0, "Received a connection '{}'", stream.peer_addr()?);
+                log_matching_verbosity!(logger, Verbosity::Debug, "Received a connection '{:?}'", stream);
 
                 let logger_clone = logger.clone();
 
@@ -40,7 +40,7 @@ pub fn start_dispatcher<'a>(
                 });
             }
             Err(err) => {
-                log!(logger, 0,
+                log!(logger, Verbosity::Default,
                     "*** An error has occured while receiving stream: {}", err);
             }
         }
@@ -59,18 +59,19 @@ fn handle_stream<'a>(
     let connection = HttpConnection::new(stream);
 
     if let Ok(mut connection) = connection {
-        log!(logger, 2, "Handling {:?}", connection);
+        log_matching_verbosity!(logger, Verbosity::Default, "Handling {:?} {:?}", connection.method(), connection.path());
+        log_matching_verbosity!(logger, Verbosity::Debug, "Handling {:?}", connection);
 
         if let Err(err) = job(&mut connection, &logger) {
             HttpResponse::new(500, "Internal Server Error")
                 .allow_all_origins(&connection)
                 .send(&mut connection)?;
 
-            log!(logger, 0, "*** An internal error has occured: {}", err);
+            log!(logger, Verbosity::Default, "*** An internal error has occured: {}", err);
 
             Err(err)
         } else {
-            log!(logger, 0, "Closing {:?}", connection.stream());
+            log!(logger, Verbosity::Debug, "Closing {:?}", connection.stream());
 
             drop(connection);
             Ok(())
@@ -78,7 +79,7 @@ fn handle_stream<'a>(
     } else {
         let err = connection.unwrap_err();
 
-        log!(logger, 0,
+        log!(logger, Verbosity::Default,
             "*** An error has occured while parsing connection: {}", err);
 
         Err(Box::new(err))

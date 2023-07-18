@@ -2,7 +2,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::{Builder, JoinHandle};
 
-use crate::common::logger::{Log, Logger};
+use crate::common::logger::{Log, Logger, Verbosity};
 use crate::common::util::Am;
 use crate::log;
 
@@ -25,7 +25,7 @@ impl Worker {
                 let to_exec = match receiver_clone.lock() {
                     Ok(queue) => queue.recv(),
                     Err(err) => {
-                        log!(logger, 0, "*** Shutting down: {}", err);
+                        log!(logger, Verbosity::Default, "*** Shutting down: {}", err);
                         break;
                     }
                 };
@@ -97,11 +97,11 @@ impl ThreadPool {
 
 impl Drop for ThreadPool {
     fn drop(&mut self) {
-        log!(self.logger, 0, "Dropping thread pool...");
+        log!(self.logger, Verbosity::Default, "Dropping thread pool...");
         drop(self.sender.take());
 
         for worker in &mut self.workers {
-            log!(self.logger, 1, "Dropping worker {}...", worker.id);
+            log!(self.logger, Verbosity::Default, "Dropping worker {}...", worker.id);
             if let Some(thread) = worker.handle.take() {
                 thread.join().unwrap();
             }

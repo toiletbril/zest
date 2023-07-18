@@ -4,11 +4,39 @@ use std::path::Path;
 use std::thread::current;
 use std::time::SystemTime;
 
+/// This filters out complex messages if not needed.
+#[repr(u8)]
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum Verbosity {
+    Default,
+    Details,
+    Debug,
+}
+
+impl From<u8> for Verbosity {
+    fn from(val: u8) -> Self {
+        match val {
+            0 => Verbosity::Default,
+            1 => Verbosity::Details,
+            2 => Verbosity::Debug,
+            _ => Verbosity::Default
+        }
+    }
+}
+
+struct LogEntry {
+    message: String,
+    verbosity: Verbosity
+}
+
+type LogQueue = Vec<LogEntry>;
+
 pub trait Log {
     /// Push a message into log queue.
-    fn log(&mut self, verbosity: u8, message: String);
+    fn log(&mut self, verbosity: Verbosity, message: String);
     /// Flush the contents of the log queue and clear it.
     fn flush(&mut self) -> Result<(), Error>;
+    fn verbosity(&self) -> Verbosity;
 }
 
 /// Quickly flush the logger behind Arc<Mutex>.
@@ -25,11 +53,16 @@ macro_rules! flush {
 #[macro_export]
 macro_rules! time {
     ($utc:expr) => {{
-        let _duration = SystemTime::now()
+        let mut _duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("Should be able to get time")
-            .as_secs()
-            + $utc * 3600;
+            .as_secs();
+
+        if $utc > 0 {
+            _duration += $utc as u64 * 3600
+        } else {
+            _duration -= ($utc * -1) as u64 * 3600
+        }
 
         let _secs = _duration % 60;
         let _mins = (_duration / 60) % 60;
@@ -49,23 +82,28 @@ macro_rules! log {
     };
 }
 
-struct LogEntry {
-    message: String,
-    verbosity: u8
+/// Log if verbosity matches.
+#[macro_export]
+macro_rules! log_matching_verbosity {
+    ($logger:expr, $verbosity:expr, $($msg:expr),*) => {
+        if let Ok(mut logger) = $logger.lock() {
+            if logger.verbosity() == $verbosity {
+                logger.log($verbosity, format!($($msg),*));
+            }
+        }
+    };
 }
-
-type LogQueue = Vec<LogEntry>;
 
 pub struct Logger {
     index: u64,
     queue: LogQueue,
-    hour_offset: u64,
+    hour_offset: i8,
     log_file: Option<File>,
-    verbosity: u8,
+    use_verbosity: Verbosity,
 }
 
 impl Logger {
-    pub fn new(utc: u64, use_file: bool, verbosity: u8) -> Self {
+    pub fn new(utc: i8, use_file: bool, verbosity: Verbosity) -> Self {
         let mut i = 0;
 
         let file = use_file.then(|| {
@@ -88,13 +126,13 @@ impl Logger {
             queue: vec![],
             hour_offset: utc,
             log_file: file,
-            verbosity: verbosity
+            use_verbosity: verbosity
         };
     }
 }
 
 impl Log for Logger {
-    fn log(&mut self, verbosity: u8, message: String) {
+    fn log(&mut self, verbosity: Verbosity, message: String) {
         let message =
             format!("{} [{}] {:?} -> {}: {}",
                     self.index, time!(self.hour_offset), current().id(),
@@ -109,17 +147,22 @@ impl Log for Logger {
     fn flush(&mut self) -> Result<(), Error> {
         if !&self.queue.is_empty() {
             for entry in &self.queue {
-                if entry.verbosity <= self.verbosity {
-                    self.log_file.as_ref()
-                        .map(|mut x| write!(x, "{}\n", entry.message));
+                if entry.verbosity as u8 <= self.use_verbosity as u8 {
 
                     println!("{}", entry.message);
                 }
+
+                self.log_file.as_ref()
+                    .map(|mut x| write!(x, "{}\n", entry.message));
             }
 
             self.queue.clear();
         }
 
         Ok(())
+    }
+
+    fn verbosity(&self) -> Verbosity {
+        self.use_verbosity
     }
 }

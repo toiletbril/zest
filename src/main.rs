@@ -23,12 +23,14 @@ use server::router::route;
 use music::index::init_music_index;
 use music::index::make_index;
 
+use crate::common::logger::Verbosity;
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const DEFAULT_ADDRESS: &str = "0.0.0.0";
 const DEFAULT_PORT: u32 = 6969;
 const DEFAULT_THREAD_COUNT: usize = 8;
-const DEFAULT_UTC: u64 = 0;
+const DEFAULT_UTC: i8 = 0;
 const DEFAULT_VERBOSITY: u8 = 0;
 
 fn entry() -> Result<(), String> {
@@ -68,11 +70,12 @@ fn entry() -> Result<(), String> {
         .parse::<usize>()
         .unwrap_or(DEFAULT_THREAD_COUNT);
     let utc = utc_flag
-        .parse::<u64>()
+        .parse::<i8>()
         .unwrap_or(DEFAULT_UTC);
-    let verbosity =
+    let verbosity: Verbosity =
         if (0..=3).contains(&verbosity_flag) { verbosity_flag as u8 }
-        else { DEFAULT_VERBOSITY };
+        else { DEFAULT_VERBOSITY }
+        .into();
 
     if show_help {
         println!("USAGE: {} [-options] <subcommand>", program_name);
@@ -86,9 +89,11 @@ fn entry() -> Result<(), String> {
         println!("              -t, --threads <count>  \tThreads to create.");
         println!("              -u, --utc <hours>      \tUTC adjustment for logger.");
         println!("              -l, --log-file         \tWrite logs to a log file.");
-        println!("              -v[vv]                \tLogging verbosity.");
+        println!("              -v/-vv                 \tLogging verbosity.");
         println!("                  --help             \tDisplay this message.");
         println!("                  --version          \tDisplay version.");
+        println!("");
+        println!("To report a bug, open up an issue at <https://github.com/toiletbril/zest>.");
         return Ok(());
     }
 
@@ -112,10 +117,10 @@ fn entry() -> Result<(), String> {
 
             init_music_index(args[1].to_owned())?;
 
-            let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag, verbosity)));
+            let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag, Verbosity::from(verbosity))));
             let logger_clone = logger.clone();
 
-            log!(logger, 0, "Starting the dispatcher (threads: {})...", thread_count);
+            log!(logger, Verbosity::Default, "Starting the dispatcher (threads: {})...", thread_count);
 
             Builder::new()
                 .name("dispatcher".to_string())
@@ -128,11 +133,11 @@ fn entry() -> Result<(), String> {
                     );
                 }).map_err(|err| err.to_string())?;
 
-            log!(logger, 0, "Starting the logger (logfile: {}, verbosity: {})...", log_file_flag, verbosity);
+            log!(logger, Verbosity::Default, "Starting the logger (logfile: {}, verbosity: {:?})...", log_file_flag, verbosity);
 
             loop {
                 let _ = flush!(logger);
-                sleep(Duration::from_micros(100));
+                sleep(Duration::from_micros(1000));
             }
         }
         "index" => {
