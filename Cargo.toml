@@ -1,6 +1,6 @@
 [package]
 name = "zest"
-version = "0.5.0-unstable"
+version = "0.5.1-unstable"
 edition = "2021"
 authors = ["toiletbril"]
 
