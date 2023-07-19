@@ -4,8 +4,8 @@
 - Investigate "bad headers" error.
 - kill() for ThreadPool.
 - Hot reindexing.
-- Adjust verbose logging.
 - Dates for logger (impossible).
 - Parse HTTP versions.
 - More effective index.
 - Cleanup.
+- Room API.

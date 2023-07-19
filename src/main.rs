@@ -73,8 +73,7 @@ fn entry() -> Result<(), String> {
         .parse::<i8>()
         .unwrap_or(DEFAULT_UTC);
     let verbosity: Verbosity =
-        if (0..=3).contains(&verbosity_flag) { verbosity_flag as u8 }
-        else { DEFAULT_VERBOSITY }
+        (verbosity_flag as u8)
         .into();
 
     if show_help {
@@ -133,7 +132,8 @@ fn entry() -> Result<(), String> {
                     );
                 }).map_err(|err| err.to_string())?;
 
-            log!(logger, Verbosity::Default, "Starting the logger ({:?}, logfile: {}, {} hours offset)...", verbosity, log_file_flag, utc);
+            log!(logger, Verbosity::Default,
+                 "Starting the logger ({:?}, logfile: {}, {} hour offset)...", verbosity, log_file_flag, utc);
 
             loop {
                 let _ = flush!(logger);
