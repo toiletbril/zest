@@ -59,8 +59,8 @@ fn handle_stream<'a>(
     let connection = HttpConnection::new(stream);
 
     if let Ok(mut connection) = connection {
-        log_matching_verbosity!(logger, Verbosity::Default, "Handling {:?} {:?}", connection.method(), connection.path());
-        log_matching_verbosity!(logger, Verbosity::Debug, "Handling {:?}", connection);
+        log!(logger, Verbosity::Default, "Handling {:?} {:?}", connection.method(), connection.path());
+        log_matching_verbosity!(logger, Verbosity::Debug, "Connection debug details {:?}", connection);
 
         if let Err(err) = job(&mut connection, &logger) {
             HttpResponse::new(500, "Internal Server Error")

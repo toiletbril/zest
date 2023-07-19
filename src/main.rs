@@ -27,11 +27,11 @@ use crate::common::logger::Verbosity;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const DEFAULT_ADDRESS: &str = "0.0.0.0";
-const DEFAULT_PORT: u32 = 6969;
-const DEFAULT_THREAD_COUNT: usize = 8;
-const DEFAULT_UTC: i8 = 0;
-const DEFAULT_VERBOSITY: u8 = 0;
+pub const DEFAULT_ADDRESS: &str = "0.0.0.0";
+pub const DEFAULT_PORT: u32 = 6969;
+pub const DEFAULT_THREAD_COUNT: usize = 8;
+pub const DEFAULT_UTC: i8 = 0;
+pub const DEFAULT_VERBOSITY: u8 = 0;
 
 fn entry() -> Result<(), String> {
     let mut args = args();
@@ -120,7 +120,7 @@ fn entry() -> Result<(), String> {
             let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag, Verbosity::from(verbosity))));
             let logger_clone = logger.clone();
 
-            log!(logger, Verbosity::Default, "Starting the dispatcher (threads: {})...", thread_count);
+            log!(logger, Verbosity::Default, "Starting the dispatcher (Threads: {})...", thread_count);
 
             Builder::new()
                 .name("dispatcher".to_string())
@@ -133,7 +133,7 @@ fn entry() -> Result<(), String> {
                     );
                 }).map_err(|err| err.to_string())?;
 
-            log!(logger, Verbosity::Default, "Starting the logger (logfile: {}, verbosity: {:?})...", log_file_flag, verbosity);
+            log!(logger, Verbosity::Default, "Starting the logger ({:?}, logfile: {}, {} hours offset)...", verbosity, log_file_flag, utc);
 
             loop {
                 let _ = flush!(logger);

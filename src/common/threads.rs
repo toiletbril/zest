@@ -2,7 +2,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::{Builder, JoinHandle};
 
-use crate::common::logger::{Log, Logger, Verbosity};
+use crate::{common::logger::{Log, Logger, Verbosity}, DEFAULT_THREAD_COUNT};
 use crate::common::util::Am;
 use crate::log;
 
@@ -53,9 +53,22 @@ pub struct ThreadPool {
     size: usize,
 }
 
+const MAX_THREAD_AMOUNT: usize = 1024 * 8;
+
 impl ThreadPool {
-    pub fn new(size: usize, logger: Am<Logger>) -> Self {
-        assert!(size > 0, "Size should be greater than zero");
+    pub fn new(mut size: usize, logger: Am<Logger>) -> Self {
+        if size <= 0 {
+            log!(logger, Verbosity::Default, "*** Thread pool size is invalid. Using default: {}", DEFAULT_THREAD_COUNT);
+
+            size = 8;
+        }
+
+        if size > MAX_THREAD_AMOUNT {
+            log!(logger, Verbosity::Default,
+                 "*** Size of thread pool is too high ({} > {}). Using default: {}", size, MAX_THREAD_AMOUNT, DEFAULT_THREAD_COUNT);
+
+            size = 8;
+        }
 
         let mut workers = Vec::with_capacity(size);
 

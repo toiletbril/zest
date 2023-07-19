@@ -19,7 +19,9 @@ impl From<u8> for Verbosity {
             0 => Verbosity::Default,
             1 => Verbosity::Details,
             2 => Verbosity::Debug,
-            _ => Verbosity::Default
+            _ => {
+                Verbosity::Debug
+            }
         }
     }
 }
