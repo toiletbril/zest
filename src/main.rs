@@ -28,6 +28,19 @@ use crate::common::logger::Verbosity;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+#[inline(always)]
+fn warn_unstable() {
+    eprintln!("{}Running Zest {}. The design is not final, and may be subject to change.",
+              Style::Bold, VERSION);
+    eprintln!("To report a bug, open up an issue at <{}https://github.com/toiletbril/zest{}>.{}\n",
+              Style::Underlined, Style::ResetUnderline, Style::Reset);
+}
+
+#[inline(always)]
+fn eheaderln(message: &str) {
+    eprintln!("{}{}{}", Color::Green, message, Color::Reset);
+}
+
 pub const DEFAULT_ADDRESS: &str = "0.0.0.0";
 pub const DEFAULT_PORT: u32 = 6969;
 pub const DEFAULT_THREAD_COUNT: usize = 8;
@@ -77,24 +90,18 @@ fn entry() -> Result<(), String> {
         (verbosity_flag as u8)
         .into();
 
-    eprintln!("{}Running Zest {}. The design is not final, and may be subject to change.",
-             Style::Bold, VERSION);
-    eprintln!("To report a bug, open up an issue at <{}https://github.com/toiletbril/zest{}>.{}\n",
-             Style::Underlined, Style::ResetUnderline, Style::Reset);
-
     if show_help && args.len() < 1 {
-        eprintln!("{}USAGE{}", Color::Green, Color::Reset);
-        eprintln!("  {} [-options] <subcommand>", program_name);
-        eprintln!("  Music-streaming web-server.");
+        eheaderln("USAGE");
+        eprintln!("    {} [-options] <subcommand>", program_name);
+        eprintln!("    Music-streaming web-server.");
         eprintln!("");
-        eprintln!("{}SUBCOMMANDS{}", Color::Green, Color::Reset);
-        eprintln!("  serve [-ptaulvv] <index file>\tServe the music.");
-        eprintln!("  index [-v]       <directory> \tIndex directory and make an index file.");
+        eheaderln("SUBCOMMANDS");
+        eprintln!("    serve [-ptaulvv] <index file>\tServe the music.");
+        eprintln!("    index [-v]       <directory> \tIndex directory and make an index file.");
         eprintln!("");
-        eprintln!("{}OPTIONS{}", Color::Green, Color::Reset);
-        eprintln!("  --help                       \tGet help for a subcommand.");
-        eprintln!("  --version                    \tDisplay version.");
-        eprintln!("");
+        eheaderln("OPTIONS");
+        eprintln!("    --help                       \tGet help for a subcommand.");
+        eprintln!("    --version                    \tDisplay version.");
 
         return Ok(());
     }
@@ -111,19 +118,18 @@ fn entry() -> Result<(), String> {
     match args[0].as_str() {
         "serve" => {
             if show_help {
-                eprintln!("{}USAGE{}", Color::Green, Color::Reset);
-                eprintln!("  {} serve [-options] <index file>", program_name);
-                eprintln!("  Serve the music, using index file.");
+                eheaderln("USAGE");
+                eprintln!("    {} serve [-options] <index file>", program_name);
+                eprintln!("    Serve the music, using index file.");
                 eprintln!("");
-                eprintln!("{}OPTIONS{}", Color::Green, Color::Reset);
-                eprintln!("  -p, --port <port>      \tSet server's port.");
-                eprintln!("  -a, --address <adress> \tSet server's address.");
-                eprintln!("  -t, --threads <count>  \tThreads to create.");
-                eprintln!("  -u, --utc <hours>      \tUTC adjustment for logger.");
-                eprintln!("  -l, --log-file         \tCreate a log file.");
-                eprintln!("  -v[v]                  \tLogging verbosity.");
-                eprintln!("      --help             \tDisplay this message.");
-                eprintln!("");
+                eheaderln("OPTIONS");
+                eprintln!("    -p, --port <port>      \tSet server's port.");
+                eprintln!("    -a, --address <adress> \tSet server's address.");
+                eprintln!("    -t, --threads <count>  \tThreads to create.");
+                eprintln!("    -u, --utc <hours>      \tUTC adjustment for logger.");
+                eprintln!("    -l, --log-file         \tCreate a log file.");
+                eprintln!("    -v[v]                  \tLogging verbosity.");
+                eprintln!("        --help             \tDisplay this message.");
 
                 return Ok(());
             }
@@ -131,6 +137,8 @@ fn entry() -> Result<(), String> {
             if args.len() < 2 {
                 return Err("Not enough arguments".into());
             }
+
+            warn_unstable();
 
             init_music_index(args[1].to_owned())?;
 
@@ -160,20 +168,19 @@ fn entry() -> Result<(), String> {
         }
         "index" => {
             if show_help {
-                eprintln!("{}USAGE{}", Color::Green, Color::Reset);
-                eprintln!("  {} index [-options] <music directory>", program_name);
-                eprintln!("  Index the directory and generate an index.");
+                eheaderln("USAGE");
+                eprintln!("    {} index [-options] <music directory>", program_name);
+                eprintln!("    Index the directory and generate an index.");
                 eprintln!("");
-                eprintln!("{}OPTIONS{}", Color::Green, Color::Reset);
-                eprintln!("  -v        \tVerbose output.");
-                eprintln!("      --help\tDisplay this message.");
-                eprintln!("");
+                eheaderln("OPTIONS");
+                eprintln!("    -v        \tVerbose output.");
+                eprintln!("        --help\tDisplay this message.");
 
                 return Ok(());
             }
 
             if args.len() < 2 {
-                    return Err("Not enough arguments".into());
+                return Err("Not enough arguments".into());
             }
 
             let path = args[1].to_owned();
@@ -190,8 +197,7 @@ fn entry() -> Result<(), String> {
             Ok(())
         }
         _ => {
-            Err(format!("Unknown subcommand '{}'.\n",
-                args[0]))
+            Err(format!("Unknown subcommand '{}'", args[0]))
         }
     }
 }
