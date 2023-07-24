@@ -32,7 +32,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn warn_unstable() {
     eprintln!("{}Running Zest {}. The design is not final, and may be subject to change.",
               Style::Bold, VERSION);
-    eprintln!("To report a bug, open up an issue at <{}https://github.com/toiletbril/zest{}>.{}\n",
+    eprintln!("To report a bug, please open up an issue at <{}https://github.com/toiletbril/zest{}>.{}\n",
               Style::Underlined, Style::ResetUnderline, Style::Reset);
 }
 
@@ -103,7 +103,7 @@ fn entry() -> Result<(), String> {
         eprintln!("    --help                       \tGet help for a subcommand.");
         eprintln!("    --version                    \tDisplay version.");
         eprintln!("");
-        eprintln!("To report a bug, open up an issue at <{}https://github.com/toiletbril/zest{}>.",
+        eprintln!("To report a bug, please open up an issue at <{}https://github.com/toiletbril/zest{}>.",
                   Style::Underlined, Style::ResetUnderline);
 
         return Ok(());
@@ -192,7 +192,7 @@ fn entry() -> Result<(), String> {
             eprintln!("Traversing '{}'...", path);
 
             match make_index(&path, verbosity) {
-                Err(err) => return Err(format!("Could not index '{}': {}", path, err)),
+                Err(err) => return Err(format!("While indexing '{}': {}", path, err)),
                 Ok(filename) => {
                     eprintln!("Successfully traversed '{}', created '{}'.", path, filename)
                 }
@@ -210,7 +210,7 @@ fn main() -> ExitCode {
     match entry() {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
-            eprintln!("{}ERROR{}: {}. Try '--help' for more information.", Color::Red, Color::Reset, err);
+            eprintln!("{}ERROR{}: {}.\nTry '--help' for more information.", Color::Red, Color::Reset, err);
             ExitCode::FAILURE
         }
     }
