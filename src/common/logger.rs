@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::fs::File;
 use std::io::{Error, Write};
 use std::path::Path;
@@ -13,6 +14,15 @@ pub enum Verbosity {
     Debug,
 }
 
+impl Display for Verbosity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut verbosity_string = format!("{:?}", self);
+        verbosity_string.make_ascii_lowercase();
+
+        write!(f, "{}", verbosity_string)
+    }
+}
+
 impl From<u8> for Verbosity {
     fn from(val: u8) -> Self {
         match val {
@@ -22,6 +32,15 @@ impl From<u8> for Verbosity {
             _ => {
                 Verbosity::Debug
             }
+        }
+    }
+}
+
+impl Verbosity {
+    #[inline(always)]
+    pub fn print_if<T: Display>(&self, verbosity_compare: Verbosity, message: T) {
+        if *self as u8 >= verbosity_compare as u8 {
+            eprintln!("{}", message);
         }
     }
 }
@@ -77,20 +96,32 @@ macro_rules! time {
 /// Quickly lock and push a message into the logger behind Arc<Mutex>.
 #[macro_export]
 macro_rules! log {
-    ($logger:expr, $verbosity:expr, $($msg:expr),*) => {
+    ($logger:expr, $($msg:expr),*) => {
         if let Ok(mut logger) = $logger.lock() {
-            logger.log($verbosity, format!($($msg),*));
+            logger.log(Verbosity::Default, format!($($msg),*));
         }
     };
 }
 
-/// Log if verbosity matches.
+/// Log if verbosity of the logger is higher or equals to specified.
 #[macro_export]
-macro_rules! log_matching_verbosity {
-    ($logger:expr, $verbosity:expr, $($msg:expr),*) => {
+macro_rules! log_higher_verbosity {
+    ($logger:expr, $verbosity_pattern:expr, $($msg:expr),*) => {
         if let Ok(mut logger) = $logger.lock() {
-            if logger.verbosity() == $verbosity {
-                logger.log($verbosity, format!($($msg),*));
+            if logger.verbosity() as u8 >= $verbosity_pattern as u8 {
+                logger.log($verbosity_pattern, format!($($msg),*));
+            }
+        }
+    };
+}
+
+/// Log if verbosity of the logger is lower or equals to specified.
+#[macro_export]
+macro_rules! log_lower_verbosity {
+    ($logger:expr, $verbosity_pattern:expr, $($msg:expr),*) => {
+        if let Ok(mut logger) = $logger.lock() {
+            if logger.verbosity() as u8 <= $verbosity_pattern as u8 {
+                logger.log($verbosity_pattern, format!($($msg),*));
             }
         }
     };

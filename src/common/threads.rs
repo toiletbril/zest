@@ -25,7 +25,7 @@ impl Worker {
                 let to_exec = match receiver_clone.lock() {
                     Ok(queue) => queue.recv(),
                     Err(err) => {
-                        log!(logger, Verbosity::Default, "*** Shutting down: {}", err);
+                        log!(logger, "Shutting down: {}", err);
                         break;
                     }
                 };
@@ -58,14 +58,13 @@ const MAX_THREAD_AMOUNT: usize = 1024 * 8;
 impl ThreadPool {
     pub fn new(mut size: usize, logger: Am<Logger>) -> Self {
         if size <= 0 {
-            log!(logger, Verbosity::Default, "*** Thread pool size is invalid. Using default: {}", DEFAULT_THREAD_COUNT);
+            log!(logger, "*** Thread pool size is invalid. Using default: {}", DEFAULT_THREAD_COUNT);
 
             size = 8;
         }
 
         if size > MAX_THREAD_AMOUNT {
-            log!(logger, Verbosity::Default,
-                 "*** Size of thread pool is too high ({} > {}). Using default: {}", size, MAX_THREAD_AMOUNT, DEFAULT_THREAD_COUNT);
+            log!(logger, "*** Size of thread pool is too high ({} > {}). Using default: {}", size, MAX_THREAD_AMOUNT, DEFAULT_THREAD_COUNT);
 
             size = 8;
         }
@@ -110,11 +109,11 @@ impl ThreadPool {
 
 impl Drop for ThreadPool {
     fn drop(&mut self) {
-        log!(self.logger, Verbosity::Default, "Dropping thread pool...");
+        log!(self.logger, "Dropping thread pool...");
         drop(self.sender.take());
 
         for worker in &mut self.workers {
-            log!(self.logger, Verbosity::Default, "Dropping worker {}...", worker.id);
+            log!(self.logger, "Dropping worker {}...", worker.id);
             if let Some(thread) = worker.handle.take() {
                 thread.join().unwrap();
             }

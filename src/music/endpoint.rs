@@ -4,7 +4,7 @@ use std::io::{Error, Read, Seek, SeekFrom};
 use crate::common::{util::{iter_to_json_string, Am}, logger::Verbosity};
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
-use crate::{log, Log, Logger};
+use crate::{log, Log, Logger, log_higher_verbosity};
 
 use super::index::get_music_index;
 
@@ -13,7 +13,7 @@ const CHUNK_SIZE: usize = 1024 * 128; // 128 kb
 pub fn list_handler(connection: &mut HttpConnection, logger: &Am<Logger>) -> Result<(), Error> {
     let index = get_music_index();
 
-    log!(logger, Verbosity::Details, "Responding with music list to {:?}", connection.stream());
+    log!(logger, "Music list => {}", connection.peer_string());
 
     return HttpResponse::new(200, "OK")
         .allow_all_origins(connection)
@@ -63,7 +63,7 @@ fn serve_music_chunk(
     chunk_index: usize,
     path: String,
 ) -> Result<(), Error> {
-    log!(logger, Verbosity::Details, "Reading from '{}'...", path);
+    log_higher_verbosity!(logger, Verbosity::Debug, "Reading from '{}'...", path);
 
     let mut file = File::open(&path)?;
     let max_size = file.metadata().map(|x| x.len()).unwrap_or(0) as usize;
@@ -87,8 +87,8 @@ fn serve_music_chunk(
         }
     };
 
-    log!(logger, Verbosity::Details, "Serving a chunk '{}' [{}..{}] to {:?}.",
-         path, start_pos, start_pos + CHUNK_SIZE, connection.stream());
+    log!(logger, "Chunk {}, {}..{} => {}.",
+         chunk_index, start_pos, start_pos + CHUNK_SIZE, connection.peer_string());
 
     return HttpResponse::new(200, "OK")
         .set_header("Content-Type", "audio/mpeg")

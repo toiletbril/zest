@@ -4,7 +4,7 @@ use std::net::TcpStream;
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum HttpMethod {
-    UNKN,
+    Unknown,
     GET,
     POST,
     PUT,
@@ -14,7 +14,20 @@ pub enum HttpMethod {
 
 impl Default for HttpMethod {
     fn default() -> Self {
-        HttpMethod::UNKN
+        HttpMethod::Unknown
+    }
+}
+
+#[derive(Debug)]
+pub enum HttpVersion {
+    V1,
+    V1_1,
+    Unknown
+}
+
+impl Default for HttpVersion {
+    fn default() -> Self {
+        HttpVersion::Unknown
     }
 }
 
@@ -23,6 +36,8 @@ pub struct HttpConnection {
     stream: TcpStream,
     method: HttpMethod,
     path: Path,
+    raw_path: String,
+    version: HttpVersion,
     headers: Headers,
     parameters: Option<Parameters>,
 }
@@ -53,42 +68,33 @@ const MAX_HEADER_SIZE: usize = 1024 * 4;
 /// - the request line is malformed.
 /// - a header is malformed.
 fn parse_http_headers(
-    stream: &mut TcpStream,
-) -> Result<(Headers, Option<Parameters>, HttpMethod, Path), Error> {
-    let mut headers = HashMap::new();
-    let mut parameters = None;
-
-    let mut method = HttpMethod::UNKN;
-    let mut path = String::new();
-
+    connection: &mut HttpConnection,
+) -> Result<(), Error> {
     let mut total_bytes_read = 0;
     let mut current_line = String::new();
     let mut prev_character: Option<char> = None;
     let mut buffer = [0; 1];
 
     loop {
-        match stream.read(&mut buffer) {
-            Ok(0) => break,
-            Ok(_) => {
+        match connection.stream_mut().read(&mut buffer)? {
+            0 => break,
+            _ => {
                 let character = buffer[0] as char;
                 total_bytes_read += 1;
 
                 if character == '\n' {
                     if prev_character == Some('\r') && current_line.is_empty() {
-                        return Ok((headers, parameters, method, path));
-                    } else if path.is_empty() {
-                        let parsed = parse_request_line(&current_line);
-                        if let Ok((method_parsed, path_parsed, parameters_parsed)) = parsed {
-                            method = method_parsed;
-                            path = path_parsed;
-                            parameters = parameters_parsed;
-                        } else {
-                            return Err(parsed.unwrap_err());
-                        }
+                        return Ok(());
+                    } else if connection.path().is_empty() {
+                        let (method, path, raw_path, parameters, version) = parse_request_line(&current_line)?;
+
+                        connection.method = method;
+                        connection.path = path;
+                        connection.raw_path = raw_path;
+                        connection.version = version;
+                        connection.parameters = parameters;
                     } else {
-                        if let Err(err) = parse_header_line(&current_line, &mut headers) {
-                            return Err(err);
-                        }
+                        parse_header_line(&current_line, &mut connection.headers)?;
                     }
 
                     current_line.clear();
@@ -98,7 +104,6 @@ fn parse_http_headers(
 
                 prev_character = Some(character);
             }
-            Err(err) => return Err(err), // error reading from the stream
         }
 
         if total_bytes_read > MAX_HEADER_SIZE {
@@ -113,25 +118,26 @@ fn parse_http_headers(
     return Err(err);
 }
 
-fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, Option<Parameters>), Error> {
-    let parts: Vec<&str> = line.split_whitespace().collect();
+fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, String, Option<Parameters>, HttpVersion), Error> {
+    // This supports multiple spaces between values on request line.
+    let mut parts = line.split_whitespace();
 
-    if parts.len() < 2 {
+    if parts.clone().count() < 2 {
         let message = "Invalid request line.";
         let err = Error::new(ErrorKind::InvalidInput, message);
         return Err(err);
     }
 
-    let method = match parts[0] {
+    let method = match parts.next().unwrap() {
         "GET" => HttpMethod::GET,
         "POST" => HttpMethod::POST,
         "PUT" => HttpMethod::PUT,
         "PATCH" => HttpMethod::PATCH,
         "DELETE" => HttpMethod::DELETE,
-        _ => HttpMethod::UNKN,
+        _ => HttpMethod::Unknown,
     };
 
-    let raw_path = parts[1].to_owned();
+    let raw_path = parts.next().unwrap().to_owned();
     let mut path_split = raw_path.split('?');
 
     let path = path_split.next().unwrap_or("/").to_owned();
@@ -157,7 +163,17 @@ fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, Option<Parameters
         None
     };
 
-    Ok((method, path, parameters))
+    // If version part exists, it is HTTP/1.1, otherwise it is 1.0
+    let version: HttpVersion = if let Some(version_part) = parts.next() {
+        match version_part.to_ascii_lowercase().as_ref() {
+            "http/1.1" => HttpVersion::V1_1,
+            _ => unreachable!()
+        }
+    } else {
+        HttpVersion::V1
+    };
+
+    Ok((method, path, url_decode(raw_path), parameters, version))
 }
 
 fn parse_header_line(line: &str, headers: &mut HashMap<String, String>) -> Result<(), Error> {
@@ -186,22 +202,35 @@ impl HttpConnection {
     /// - the request line is malformed.
     /// - a header is malformed.
     pub fn new(mut stream: TcpStream) -> Result<Self, Error> {
-        let result = parse_http_headers(&mut stream);
-        if let Ok((headers, parameters, method, path)) = result {
-            Ok(HttpConnection {
-                stream,
-                method,
-                path,
-                headers,
-                parameters,
-            })
-        } else {
-            Err(result.unwrap_err())
-        }
+        let mut connection = HttpConnection {
+            stream: stream,
+            method: Default::default(),
+            path: Default::default(),
+            raw_path: Default::default(),
+            version: Default::default(),
+            headers: Default::default(),
+            parameters: Default::default()
+        };
+
+        parse_http_headers(&mut connection)?;
+
+        Ok(connection)
     }
 
-    pub fn stream(&mut self) -> &mut TcpStream {
+    pub fn stream_mut(&mut self) -> &mut TcpStream {
         &mut self.stream
+    }
+
+    pub fn stream(&self) -> &TcpStream {
+        &self.stream
+    }
+
+    pub fn peer_string(&self) -> String {
+        if let Ok(ip) = self.stream().peer_addr() {
+            ip.to_string()
+        } else {
+            "Unknown address".into()
+        }
     }
 
     pub fn method(&self) -> HttpMethod {
@@ -210,6 +239,10 @@ impl HttpConnection {
 
     pub fn path(&self) -> &String {
         &self.path
+    }
+
+    pub fn raw_path(&self) -> &String {
+        &self.raw_path
     }
 
     pub fn headers(&self) -> &Headers {

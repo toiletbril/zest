@@ -1,12 +1,12 @@
 use std::error::Error;
 use std::net::{TcpListener, TcpStream};
 
-use crate::{common::logger::{Log, Logger, Verbosity}, log_matching_verbosity};
+use crate::common::logger::{Log, Logger, Verbosity};
 use crate::common::threads::ThreadPool;
 use crate::common::util::Am;
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
-use crate::log;
+use crate::{log, log_higher_verbosity, log_lower_verbosity};
 
 type DispatcherJob = fn(&mut HttpConnection, &Am<Logger>) -> Result<(), Box<dyn Error>>;
 
@@ -21,17 +21,17 @@ pub fn start_dispatcher<'a>(
     logger: Am<Logger>,
     job: DispatcherJob,
 ) -> Result<(), std::io::Error> {
-    log!(logger, Verbosity::Default, "Binding to <http://{address}>...");
+    log!(logger, "Binding to <http://{address}>...");
+
     let listener = TcpListener::bind(address)?;
     let thread_pool = ThreadPool::new(thread_count, logger.clone());
 
-    log!(logger, Verbosity::Default,
-        "Started. Available threads: {}.", thread_pool.size());
+    log!(logger, "Started. Available threads: {}.", thread_pool.size());
 
     for connection in listener.incoming() {
         match connection {
             Ok(stream) => {
-                log_matching_verbosity!(logger, Verbosity::Debug, "Received a connection '{:?}'", stream);
+                log_higher_verbosity!(logger, Verbosity::Debug, "Dispatching a thread for {:?}", stream);
 
                 let logger_clone = logger.clone();
 
@@ -40,8 +40,7 @@ pub fn start_dispatcher<'a>(
                 });
             }
             Err(err) => {
-                log!(logger, Verbosity::Default,
-                    "*** An error has occured while receiving stream: {}", err);
+                log!(logger, "*** An error has occured while receiving stream: {}", err);
             }
         }
     }
@@ -59,19 +58,21 @@ fn handle_stream<'a>(
     let connection = HttpConnection::new(stream);
 
     if let Ok(mut connection) = connection {
-        log!(logger, Verbosity::Default, "Handling {:?} {:?}", connection.method(), connection.path());
-        log_matching_verbosity!(logger, Verbosity::Debug, "Connection debug details {:?}", connection);
+        log_lower_verbosity!(logger, Verbosity::Default, "{} => {:?} {:?}",
+            connection.peer_string(), connection.method(), connection.raw_path());
+
+        log_higher_verbosity!(logger, Verbosity::Details, "Connection: {:?}", connection);
 
         if let Err(err) = job(&mut connection, &logger) {
             HttpResponse::new(500, "Internal Server Error")
                 .allow_all_origins(&connection)
                 .send(&mut connection)?;
 
-            log!(logger, Verbosity::Default, "*** An internal error has occured: {}", err);
+            log!(logger, "*** An internal error has occured: {}", err);
 
             Err(err)
         } else {
-            log!(logger, Verbosity::Debug, "Closing {:?}", connection.stream());
+            log_higher_verbosity!(logger, Verbosity::Debug, "Closing {:?}", connection.stream_mut());
 
             drop(connection);
             Ok(())
@@ -79,8 +80,7 @@ fn handle_stream<'a>(
     } else {
         let err = connection.unwrap_err();
 
-        log!(logger, Verbosity::Default,
-            "*** An error has occured while parsing connection: {}", err);
+        log!(logger, "*** An error has occured while parsing connection: {}", err);
 
         Err(Box::new(err))
     }
