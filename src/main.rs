@@ -84,16 +84,16 @@ fn entry() -> Result<(), String> {
 
     if show_help && args.len() < 1 {
         eprintln!("{}USAGE{}", Color::Green, Color::Reset);
-        eprintln!("{} [-options] <subcommand>", program_name);
-        eprintln!("Music-streaming web-server.");
+        eprintln!("  {} [-options] <subcommand>", program_name);
+        eprintln!("  Music-streaming web-server.");
         eprintln!("");
         eprintln!("{}SUBCOMMANDS{}", Color::Green, Color::Reset);
-        eprintln!("serve [-ptaulvv] <index file>\tServe the music.");
-        eprintln!("index [-v]       <directory> \tIndex directory and make an index file.");
+        eprintln!("  serve [-ptaulvv] <index file>\tServe the music.");
+        eprintln!("  index [-v]       <directory> \tIndex directory and make an index file.");
         eprintln!("");
         eprintln!("{}OPTIONS{}", Color::Green, Color::Reset);
-        eprintln!("--help                       \tGet help for a subcommand.");
-        eprintln!("--version                    \tDisplay version.");
+        eprintln!("  --help                       \tGet help for a subcommand.");
+        eprintln!("  --version                    \tDisplay version.");
         eprintln!("");
 
         return Ok(());
@@ -112,25 +112,24 @@ fn entry() -> Result<(), String> {
         "serve" => {
             if show_help {
                 eprintln!("{}USAGE{}", Color::Green, Color::Reset);
-                eprintln!("{} serve [-options] <index file>", program_name);
-                eprintln!("Serve the music, using index file.");
+                eprintln!("  {} serve [-options] <index file>", program_name);
+                eprintln!("  Serve the music, using index file.");
                 eprintln!("");
                 eprintln!("{}OPTIONS{}", Color::Green, Color::Reset);
-                eprintln!("-p, --port <port>      \tSet server's port.");
-                eprintln!("-a, --address <adress> \tSet server's address.");
-                eprintln!("-t, --threads <count>  \tThreads to create.");
-                eprintln!("-u, --utc <hours>      \tUTC adjustment for logger.");
-                eprintln!("-l, --log-file         \tWrite logs to a log file.");
-                eprintln!("-v[v]                  \tLogging verbosity.");
-                eprintln!("    --help             \tDisplay this message.");
+                eprintln!("  -p, --port <port>      \tSet server's port.");
+                eprintln!("  -a, --address <adress> \tSet server's address.");
+                eprintln!("  -t, --threads <count>  \tThreads to create.");
+                eprintln!("  -u, --utc <hours>      \tUTC adjustment for logger.");
+                eprintln!("  -l, --log-file         \tCreate a log file.");
+                eprintln!("  -v[v]                  \tLogging verbosity.");
+                eprintln!("      --help             \tDisplay this message.");
                 eprintln!("");
 
                 return Ok(());
             }
 
             if args.len() < 2 {
-                return Err(format!("Not enough arguments.\nUSAGE: {} serve <index file>",
-                                   program_name));
+                return Err("Not enough arguments".into());
             }
 
             init_music_index(args[1].to_owned())?;
@@ -162,20 +161,19 @@ fn entry() -> Result<(), String> {
         "index" => {
             if show_help {
                 eprintln!("{}USAGE{}", Color::Green, Color::Reset);
-                eprintln!("{} index [-options] <music directory>", program_name);
-                eprintln!("Index the directory and generate an index.");
+                eprintln!("  {} index [-options] <music directory>", program_name);
+                eprintln!("  Index the directory and generate an index.");
                 eprintln!("");
                 eprintln!("{}OPTIONS{}", Color::Green, Color::Reset);
-                eprintln!("-v        \tVerbose output.");
-                eprintln!("    --help\tDisplay this message.");
+                eprintln!("  -v        \tVerbose output.");
+                eprintln!("      --help\tDisplay this message.");
                 eprintln!("");
 
                 return Ok(());
             }
 
             if args.len() < 2 {
-                    return Err(format!("Not enough arguments.\nUSAGE: {} index <directory>",
-                                       program_name));
+                    return Err("Not enough arguments".into());
             }
 
             let path = args[1].to_owned();
@@ -202,7 +200,7 @@ fn main() -> ExitCode {
     match entry() {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
-            eprintln!("{}ERROR{}: {}. Try adding '--help' for more information.", Color::Red, Color::Reset, err);
+            eprintln!("{}ERROR{}: {}. Try '--help' for more information.", Color::Red, Color::Reset, err);
             ExitCode::FAILURE
         }
     }
