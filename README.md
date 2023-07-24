@@ -4,6 +4,8 @@ Web-server with main goal of streaming music in small chunks from all `mp3` file
 
 Initially built with no dependencies (and possibly not up to any of HTTP standarts).
 
+Concatenating and playing music chunks is left up to you.
+
 ## Limitations
 - Only `mp3` files are supported for now.
 - As no SSL or authorization is planned yet, for real-world backend usage you will need to pair Zest with reverse proxy that supports everything you need.
