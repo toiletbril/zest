@@ -102,7 +102,7 @@ fn entry() -> Result<(), String> {
     }
 
     if args.len() < 1 {
-        return Err("Not enough arguments.\n".to_string());
+        return Err("Not enough arguments.".to_string());
     }
 
     println!("Running Zest {}", VERSION);
@@ -110,8 +110,9 @@ fn entry() -> Result<(), String> {
     match args[0].as_str() {
         "serve" => {
             if args.len() < 2 {
-                return Err(format!("Not enough arguments.\nUSAGE: {} serve <index file>\n",
-                                   program_name));
+                return Err(
+                    format!("Not enough arguments.\nUSAGE: {} serve <index file>.", program_name)
+                );
             }
 
             init_music_index(args[1].to_owned())?;
@@ -142,8 +143,9 @@ fn entry() -> Result<(), String> {
         }
         "index" => {
             if args.len() < 2 {
-                    return Err(format!("Not enough arguments.\nUSAGE: {} index <directory>\n",
-                                       program_name));
+                return Err(
+                    format!("Not enough arguments.\nUSAGE: {} index <directory>.", program_name)
+                );
             }
 
             let path = args[1].to_owned();
@@ -171,7 +173,7 @@ fn main() -> ExitCode {
     match entry() {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
-            eprintln!("ERROR: {}.\nTry '--help' for more information", err);
+            eprintln!("*** ERROR: {}\nTry '--help' for more information.", err);
             ExitCode::FAILURE
         }
     }
