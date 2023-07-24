@@ -210,7 +210,7 @@ fn main() -> ExitCode {
     match entry() {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
-            eprintln!("{}ERROR{}: {}.\nTry '--help' for more information.", Color::Red, Color::Reset, err);
+            eprintln!("{}ERROR{}: {}. Try using '--help' for more information.", Color::Red, Color::Reset, err);
             ExitCode::FAILURE
         }
     }

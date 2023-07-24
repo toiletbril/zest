@@ -1,11 +1,6 @@
 - Transcode everything to webm?
 - JSON struct.
-- URI decoding for very weird UTF-8 names.
-- Investigate "bad headers" error.
-- kill() for ThreadPool.
+- URI decoding for very weird UTF-8 names (russian characters).
 - Hot reindexing.
-- Dates for logger (impossible).
-- Parse HTTP versions.
 - More effective index.
-- Cleanup.
 - Room API.
