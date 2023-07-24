@@ -1,6 +1,6 @@
 [package]
 name = "zest"
-version = "0.6.0-unstable"
+version = "0.6.1-unstable"
 edition = "2021"
 repository = "https://github.com/toiletbril/zest"
 authors = ["toiletbril"]
