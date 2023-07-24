@@ -103,7 +103,8 @@ fn entry() -> Result<(), String> {
         eprintln!("    --help                       \tGet help for a subcommand.");
         eprintln!("    --version                    \tDisplay version.");
         eprintln!("");
-        eprintln!("To report a bug, open up an issue at <https://github.com/toiletbril/zest>.");
+        eprintln!("To report a bug, open up an issue at <{}https://github.com/toiletbril/zest{}>.",
+                  Style::Underlined, Style::ResetUnderline, Style::Reset);
 
         return Ok(());
     }
