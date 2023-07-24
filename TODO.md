@@ -1,3 +1,4 @@
+- --help for each subcommand.
 - Transcode everything to webm?
 - JSON struct.
 - URI decoding for very weird UTF-8 names.
