@@ -104,7 +104,7 @@ fn entry() -> Result<(), String> {
         eprintln!("    --version                    \tDisplay version.");
         eprintln!("");
         eprintln!("To report a bug, open up an issue at <{}https://github.com/toiletbril/zest{}>.",
-                  Style::Underlined, Style::ResetUnderline, Style::Reset);
+                  Style::Underlined, Style::ResetUnderline);
 
         return Ok(());
     }
