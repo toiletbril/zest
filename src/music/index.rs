@@ -95,7 +95,7 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
                 let quoted = String::from_utf8(buffer).map_err(|err| {
                     let message =
                         format!("Invalid UTF-8 sequence at position {} ({})", cursor_position, err);
-                    Error::new(ErrorKind::InvalidData, message)
+                    Error::new(ErrorKind::InvalidInput, message)
                 })?;
 
                 if !read_key {
@@ -110,7 +110,7 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
             }
             _ => {
                 let message = format!("Invalid character '{}' at position {}", cursor_position, buffer[0] as char);
-                return Err(Error::new(ErrorKind::InvalidData, message));
+                return Err(Error::new(ErrorKind::InvalidInput, message));
             }
         }
 
@@ -123,7 +123,7 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
 
     if index_path.is_empty() || entries.is_empty() {
         return Err(Error::new(
-            ErrorKind::InvalidData,
+            ErrorKind::InvalidInput,
             "File is not a zest index",
         ));
     }
@@ -176,6 +176,13 @@ fn recurse_music(path: &String, verbosity: Verbosity) -> Result<HashMap<FileName
 }
 
 fn make_index_file(index: HashMap<FileName, FilePath>, path: &FilePath) -> Result<String, Error> {
+    if index.is_empty() {
+        return Err(Error::new(
+            ErrorKind::InvalidInput,
+            "Directory does not contain any of the supported music files"
+        ));
+    }
+
     let mut i = 0;
 
     while Path::new(format!("./zest-index-{}.json", i).as_str()).exists() {
