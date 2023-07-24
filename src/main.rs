@@ -102,12 +102,15 @@ fn entry() -> Result<(), String> {
         eheaderln("OPTIONS");
         eprintln!("    --help                       \tGet help for a subcommand.");
         eprintln!("    --version                    \tDisplay version.");
+        eprintln!("");
+        eprintln!("To report a bug, open up an issue at <https://github.com/toiletbril/zest>.",
 
         return Ok(());
     }
 
     if show_version {
-        println!("Zest {} (c) toiletbril <https://github.com/toiletbril>", VERSION);
+        println!("Zest {}", VERSION);
+        println!("(c) toiletbril <https://github.com/toiletbril>");
         return Ok(());
     }
 
