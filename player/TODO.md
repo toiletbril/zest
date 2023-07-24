@@ -1,6 +1,4 @@
-- Metadata?
-- Auto-start.
-- Shuffle.
-- Folders.
-- Rooms.
-- Bypass `SourceBuffer` max size or use something else.
+- Advanced player with metadata, auto-start, shuffle.
+- Group by folder, metadata.
+- Rooms API (should this be implemented in a client or server itself?).
+- Bypass `SourceBuffer` max size (use something else (transcode to webm)).
