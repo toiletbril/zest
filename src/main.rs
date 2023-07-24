@@ -6,6 +6,7 @@ use std::time::Duration;
 
 extern crate toiletcli;
 
+use toiletcli::colors::*;
 use toiletcli::common::name_from_path;
 use toiletcli::flags;
 use toiletcli::flags::{parse_flags, Flag, FlagType};
@@ -76,23 +77,25 @@ fn entry() -> Result<(), String> {
         (verbosity_flag as u8)
         .into();
 
-    if show_help {
-        println!("USAGE: {} [-options] <subcommand>", program_name);
-        println!("Music-streaming web-server.");
-        println!("");
-        println!("SUBCOMMANDS:  serve <index file>     \tServe the music.");
-        println!("              index <directory>      \tIndex directory and make an index file.");
-        println!("");
-        println!("OPTIONS:      -p, --port <port>      \tSet server's port.");
-        println!("              -a, --address <adress> \tSet server's address.");
-        println!("              -t, --threads <count>  \tThreads to create.");
-        println!("              -u, --utc <hours>      \tUTC adjustment for logger.");
-        println!("              -l, --log-file         \tWrite logs to a log file.");
-        println!("              -v/-vv                 \tLogging verbosity.");
-        println!("                  --help             \tDisplay this message.");
-        println!("                  --version          \tDisplay version.");
-        println!("");
-        println!("To report a bug, open up an issue at <https://github.com/toiletbril/zest>.");
+    eprintln!("{}Running Zest {}. The design is not final, and may be subject to change.",
+             Style::Bold, VERSION);
+    eprintln!("To report a bug, open up an issue at <{}https://github.com/toiletbril/zest{}>.{}\n",
+             Style::Underlined, Style::ResetUnderline, Style::Reset);
+
+    if show_help && args.len() < 1 {
+        eprintln!("{}USAGE{}", Color::Green, Color::Reset);
+        eprintln!("{} [-options] <subcommand>", program_name);
+        eprintln!("Music-streaming web-server.");
+        eprintln!("");
+        eprintln!("{}SUBCOMMANDS{}", Color::Green, Color::Reset);
+        eprintln!("serve [-ptaulvv] <index file>\tServe the music.");
+        eprintln!("index [-v]       <directory> \tIndex directory and make an index file.");
+        eprintln!("");
+        eprintln!("{}OPTIONS{}", Color::Green, Color::Reset);
+        eprintln!("--help                       \tGet help for a subcommand.");
+        eprintln!("--version                    \tDisplay version.");
+        eprintln!("");
+
         return Ok(());
     }
 
@@ -102,15 +105,31 @@ fn entry() -> Result<(), String> {
     }
 
     if args.len() < 1 {
-        return Err("Not enough arguments.\n".to_string());
+        return Err("Not enough arguments".into());
     }
-
-    println!("Running Zest {}", VERSION);
 
     match args[0].as_str() {
         "serve" => {
+            if show_help {
+                eprintln!("{}USAGE{}", Color::Green, Color::Reset);
+                eprintln!("{} serve [-options] <index file>", program_name);
+                eprintln!("Serve the music, using index file.");
+                eprintln!("");
+                eprintln!("{}OPTIONS{}", Color::Green, Color::Reset);
+                eprintln!("-p, --port <port>      \tSet server's port.");
+                eprintln!("-a, --address <adress> \tSet server's address.");
+                eprintln!("-t, --threads <count>  \tThreads to create.");
+                eprintln!("-u, --utc <hours>      \tUTC adjustment for logger.");
+                eprintln!("-l, --log-file         \tWrite logs to a log file.");
+                eprintln!("-v[v]                  \tLogging verbosity.");
+                eprintln!("    --help             \tDisplay this message.");
+                eprintln!("");
+
+                return Ok(());
+            }
+
             if args.len() < 2 {
-                return Err(format!("Not enough arguments.\nUSAGE: {} serve <index file>\n",
+                return Err(format!("Not enough arguments.\nUSAGE: {} serve <index file>",
                                    program_name));
             }
 
@@ -119,7 +138,7 @@ fn entry() -> Result<(), String> {
             let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag, Verbosity::from(verbosity))));
             let logger_clone = logger.clone();
 
-            log!(logger, Verbosity::Default, "Starting the dispatcher (Threads: {})...", thread_count);
+            log!(logger, "Starting the dispatcher ({} threads)...", thread_count);
 
             Builder::new()
                 .name("dispatcher".to_string())
@@ -132,8 +151,8 @@ fn entry() -> Result<(), String> {
                     );
                 }).map_err(|err| err.to_string())?;
 
-            log!(logger, Verbosity::Default,
-                 "Starting the logger ({:?}, logfile: {}, {} hour offset)...", verbosity, log_file_flag, utc);
+            log!(logger, "Starting the logger (mode: {}, logfile: {}, {} hour offset)...",
+                 verbosity, log_file_flag, utc);
 
             loop {
                 let _ = flush!(logger);
@@ -141,20 +160,32 @@ fn entry() -> Result<(), String> {
             }
         }
         "index" => {
+            if show_help {
+                eprintln!("{}USAGE{}", Color::Green, Color::Reset);
+                eprintln!("{} index [-options] <music directory>", program_name);
+                eprintln!("Index the directory and generate an index.");
+                eprintln!("");
+                eprintln!("{}OPTIONS{}", Color::Green, Color::Reset);
+                eprintln!("-v        \tVerbose output.");
+                eprintln!("    --help\tDisplay this message.");
+                eprintln!("");
+
+                return Ok(());
+            }
+
             if args.len() < 2 {
-                    return Err(format!("Not enough arguments.\nUSAGE: {} index <directory>\n",
+                    return Err(format!("Not enough arguments.\nUSAGE: {} index <directory>",
                                        program_name));
             }
 
             let path = args[1].to_owned();
 
-            println!("Traversing '{}'...", path);
+            eprintln!("Traversing '{}'...", path);
 
-            match make_index(&path) {
+            match make_index(&path, verbosity) {
                 Err(err) => return Err(format!("Could not index '{}': {}", path, err)),
                 Ok(filename) => {
-                    println!("Successfully traversed '{}', created '{}'.",
-                             path, filename)
+                    eprintln!("Successfully traversed '{}', created '{}'.", path, filename)
                 }
             }
 
@@ -171,7 +202,7 @@ fn main() -> ExitCode {
     match entry() {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
-            eprintln!("ERROR: {}.\nTry '--help' for more information", err);
+            eprintln!("{}ERROR{}: {}. Try adding '--help' for more information.", Color::Red, Color::Reset, err);
             ExitCode::FAILURE
         }
     }
