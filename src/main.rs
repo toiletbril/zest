@@ -129,7 +129,7 @@ fn entry() -> Result<(), String> {
                 eheaderln("OPTIONS");
                 eprintln!("    -p, --port <port>      \tSet server's port.");
                 eprintln!("    -a, --address <adress> \tSet server's address.");
-                eprintln!("    -t, --threads <count>  \tThreads to create.");
+                eprintln!("    -t, --threads <count>  \tAmount of threads to create.");
                 eprintln!("    -u, --utc <hours>      \tUTC adjustment for logger.");
                 eprintln!("    -l, --log-file         \tCreate a log file.");
                 eprintln!("    -v[v]                  \tLogging verbosity.");

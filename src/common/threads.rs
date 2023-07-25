@@ -57,14 +57,8 @@ const MAX_THREAD_AMOUNT: usize = 1024 * 8;
 
 impl ThreadPool {
     pub fn new(mut size: usize, logger: Am<Logger>) -> Self {
-        if size <= 0 {
+        if size <= 0 || size > MAX_THREAD_AMOUNT {
             log!(logger, "*** Thread pool size is invalid. Using default: {}", DEFAULT_THREAD_COUNT);
-
-            size = 8;
-        }
-
-        if size > MAX_THREAD_AMOUNT {
-            log!(logger, "*** Size of thread pool is too high ({} > {}). Using default: {}", size, MAX_THREAD_AMOUNT, DEFAULT_THREAD_COUNT);
 
             size = 8;
         }
