@@ -13,7 +13,7 @@ const CHUNK_SIZE: usize = 1024 * 128; // 128 kb
 pub fn list_handler(connection: &mut HttpConnection, logger: &Am<Logger>) -> Result<(), Error> {
     let index = get_music_index();
 
-    log!(logger, "Music list => {}", connection.peer_string());
+    log!(logger, "{} <= Music list", connection.peer_string());
 
     return HttpResponse::new(200, "OK")
         .allow_all_origins(connection)
@@ -44,12 +44,16 @@ pub fn chunk_handler(
             let music_path = format!("{}{}", index.path(), path);
             return serve_music_chunk(connection, logger, chunk, music_path);
         } else {
+            log!(logger, "{} <= 404 No such track", connection.peer_string());
+
             return Ok(HttpResponse::new(404, "Not Found")
                 .set_json_body(&"{ \"message\": \"Track specified was not found\" }")
                 .allow_all_origins(connection)
                 .send(connection)?);
         }
     }
+
+    log!(logger, "{} <= 400 No name parameter", connection.peer_string());
 
     HttpResponse::new(400, "Bad Request")
         .set_json_body(&"{ \"message\": \"Please specify track and chunk with path parameters\" }")
@@ -87,8 +91,8 @@ fn serve_music_chunk(
         }
     };
 
-    log!(logger, "Chunk {}, {}..{} => {}.",
-         chunk_index, start_pos, start_pos + CHUNK_SIZE, connection.peer_string());
+    log!(logger, "{} <= Chunk {}, {}..{}",
+         connection.peer_string(), chunk_index, start_pos, start_pos + CHUNK_SIZE);
 
     return HttpResponse::new(200, "OK")
         .set_header("Content-Type", "audio/mpeg")
