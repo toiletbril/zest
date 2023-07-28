@@ -2,9 +2,7 @@
 
 Web-server with main goal of streaming music in small chunks from all `mp3` files of any bitrate from a folder and it's subfolders. The rest will be decided later.
 
-Initially built with no dependencies (and possibly not up to any of HTTP standarts).
-
-Concatenating and playing music chunks is left up to you.
+Initially built with no dependencies (**and possibly not up to any of HTTP/web security standarts**), it is currently usable, althrough highly unstable.
 
 ## Limitations
 - Only `mp3` files are supported for now.
