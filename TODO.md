@@ -1,3 +1,4 @@
+- -q flag to silence everything.
 - Transcode everything to webm?
 - JSON struct.
 - URI decoding for very weird UTF-8 names (russian characters).
