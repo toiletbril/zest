@@ -115,6 +115,18 @@ macro_rules! log_higher_verbosity {
     };
 }
 
+/// Log if verbosity of the logger is higher or equals to specified.
+#[macro_export]
+macro_rules! log_matching_verbosity {
+    ($logger:expr, $verbosity_pattern:expr, $($msg:expr),*) => {
+        if let Ok(mut logger) = $logger.lock() {
+            if logger.verbosity() as u8 == $verbosity_pattern as u8 {
+                logger.log($verbosity_pattern, format!($($msg),*));
+            }
+        }
+    };
+}
+
 /// Log if verbosity of the logger is lower or equals to specified.
 #[macro_export]
 macro_rules! log_lower_verbosity {
