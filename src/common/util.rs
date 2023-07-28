@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{sync::{Arc, Mutex}, collections::HashMap, fmt::Display};
+use std::{io::{Error, ErrorKind}, sync::{Arc, Mutex}, collections::HashMap, fmt::Display};
 
 pub type Am<T> = Arc<Mutex<T>>;
 pub type FilePath = String;
@@ -49,32 +49,59 @@ pub fn url_encode<S: Display>(input: S) -> String {
     encoded
 }
 
-pub fn url_decode<S: AsRef<str>>(input: S) -> String {
-    let input_string = input.as_ref();
-    let mut bytes = input_string.bytes();
+pub fn url_decode<S: AsRef<str>>(input: S) -> Result<String, Error> {
+    let mut input = input.as_ref().bytes();
+    let mut decoded = Vec::new();
 
-    let mut decoded = String::new();
-
-    while let Some(byte) = bytes.next() {
+    while let Some(byte) = input.next() {
         match byte {
             b'%' => {
-                if let (Some(hex1), Some(hex2)) = (bytes.next(), bytes.next()) {
-                    if let Ok(decoded_byte) = u8::from_str_radix(&format!("{}{}", hex1 as char, hex2 as char), 16) {
-                        decoded.push(decoded_byte as char);
-                    } else {
-                        decoded.push('%');
-                        decoded.push(hex1 as char);
-                        decoded.push(hex2 as char);
-                    }
+                if let (Some(hex1), Some(hex2)) = (input.next(), input.next()) {
+                    let hex_str = format!("{}{}", hex1 as char, hex2 as char);
+
+                    u8::from_str_radix(&hex_str, 16)
+                        .map(|value| decoded.push(value))
+                        .map_err(|err| {
+                            Error::new(ErrorKind::InvalidInput, err.to_string())
+                        })?;
                 } else {
-                    decoded.push('%');
+                    let err = Error::new(ErrorKind::InvalidInput, "Invalid URL string");
+                    return Err(err);
                 }
             }
             _ => {
-                decoded.push(byte as char);
+                decoded.push(byte);
             }
         }
     }
 
-    decoded
+    String::from_utf8(decoded).map_err(|err| {
+        Error::new(ErrorKind::InvalidInput, err.to_string())
+    })
+}
+
+mod tests {
+    #[test]
+    fn url_encode_and_decode() {
+        use super::*;
+
+        let first = "dsiaHello222World!!!(*&&(#^@()()))";
+        let first_e = url_encode(first.clone());
+        let first_d = url_decode(first_e.clone());
+
+        println!("Input: {}", first);
+        println!("Encoded: {}", first_e);
+
+        assert_eq!(first, first_d.unwrap());
+
+        let second = ".юю.Всем.ээдшовф**kjlOKOHQъъэОШЩЗ0привет%:?*()";
+        let second_e = url_encode(second.clone());
+        let second_d = url_decode(second_e.clone());
+
+        println!("Input: {}", second);
+        println!("Encoded: {}", second_e);
+
+        assert_eq!(second, second_d.unwrap());
+
+    }
 }

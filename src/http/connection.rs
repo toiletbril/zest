@@ -142,21 +142,28 @@ fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, String, Option<Pa
     let mut path_split = raw_path.split('?');
 
     let path = path_split.next().unwrap_or("/").to_owned();
+    let decoded_path = url_decode(path)?;
 
     let parameters = if let Some(raw_parameters) = path_split.next() {
         let mut parameters = HashMap::new();
         let split_parameters = raw_parameters.split('&');
 
         for param in split_parameters {
-            let mut kv = param.split('=');
+            let mut key_value = param.split('=');
 
-            let k = kv.next();
-            if k == None || k.unwrap().is_empty() {
+            let key = key_value.next();
+
+            if key == None || key.unwrap().is_empty() {
                 continue;
             }
-            let v = kv.next().unwrap_or_default();
 
-            parameters.insert(url_decode(k.unwrap()).to_lowercase(), url_decode(v));
+            let value = key_value.next().unwrap();
+            let key = key.unwrap();
+
+            let decoded_key = url_decode(key)?;
+            let decoded_value = url_decode(value)?;
+
+            parameters.insert(decoded_key.to_lowercase(), decoded_value);
         }
 
         Some(parameters)
@@ -175,7 +182,9 @@ fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, String, Option<Pa
         HttpVersion::V1
     };
 
-    Ok((method, path, url_decode(raw_path), parameters, version))
+    let decoded_raw_path = url_decode(raw_path)?;
+
+    Ok((method, decoded_path, decoded_raw_path, parameters, version))
 }
 
 fn parse_header_line(line: &str, headers: &mut HashMap<String, String>) -> Result<(), Error> {
