@@ -6,7 +6,7 @@ use crate::common::threads::ThreadPool;
 use crate::common::util::Am;
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
-use crate::{log, log_higher_verbosity, log_lower_verbosity};
+use crate::{log, log_higher_verbosity, log_matching_verbosity, log_lower_verbosity};
 
 type DispatcherJob = fn(&mut HttpConnection, &Am<Logger>) -> Result<(), Box<dyn Error>>;
 
@@ -61,7 +61,9 @@ fn handle_stream<'a>(
         log_lower_verbosity!(logger, Verbosity::Default, "{} => {:?} {:?}",
             connection.peer_string(), connection.method(), connection.raw_path());
 
-        log_higher_verbosity!(logger, Verbosity::Details, "Connection: {:?}", connection);
+        log_matching_verbosity!(logger, Verbosity::Details, "Connection: {:?}", connection.stream());
+
+        log_higher_verbosity!(logger, Verbosity::Debug, "Connection: {:?}", connection);
 
         if let Err(err) = job(&mut connection, &logger) {
             HttpResponse::new(500, "Internal Server Error")
