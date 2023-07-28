@@ -20,6 +20,7 @@ impl Default for HttpMethod {
 
 #[derive(Debug)]
 pub enum HttpVersion {
+    V0_9,
     V1,
     V1_1,
     Unknown
@@ -163,11 +164,12 @@ fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, String, Option<Pa
         None
     };
 
-    // If version part exists, it is HTTP/1.1, otherwise it is 1.0
     let version: HttpVersion = if let Some(version_part) = parts.next() {
         match version_part.to_ascii_lowercase().as_ref() {
+            "http/0.9" => HttpVersion::V0_9,
+            "http/1.0" => HttpVersion::V1,
             "http/1.1" => HttpVersion::V1_1,
-            _ => unreachable!()
+            _ => HttpVersion::Unknown
         }
     } else {
         HttpVersion::V1
