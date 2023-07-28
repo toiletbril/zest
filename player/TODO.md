@@ -1,4 +1,6 @@
 - Advanced player with metadata, auto-start, shuffle.
 - Group by folder, metadata.
 - Rooms API (should this be implemented in a client or server itself?).
-- Bypass `SourceBuffer` max size (use something else (transcode to webm)).
+- Bypass `SourceBuffer` max size:
+    - use something else to transcode to webm
+    - `remove()`.

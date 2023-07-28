@@ -1,10 +1,10 @@
 # Zest Player
 
-With default settings, this app assumes that Zest is running on `0.0.0.0:6969` on the same machine, and the browser supports decoding of `audio/mpeg` with `MediaSource`.
+By default, this app assumes that Zest is running on `0.0.0.0:6969` on the same machine, and that the browser is capable of decoding `audio/mpeg` using `MediaSource`.
 
-For now, it relies on `SourceBuffer` to store audio in memory, which means that max size for one track is ~10mb.
+Currently, the it relies on `SourceBuffer` to store audio in memory, which limits the maximum size of a single track to approximately ~10mb.
 
-You can edit default address in [main.js](./main.js).
+The default address can be edited in [main.js](./main.js).
 
 # Quick start
 
@@ -18,4 +18,4 @@ Start a python web-server to serve this folder:
 $ python3 -m http.server <port>
 ```
 
-This way, the page will be available to everyone who has access to that port, so they can enjoy your music too :3c
+The page will be accessible to everyone who has access to the specified port, so they can enjoy your music too :3c

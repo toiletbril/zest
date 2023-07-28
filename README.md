@@ -1,16 +1,16 @@
 # Zest
 
-Web-server with main goal of streaming music in small chunks from all `mp3` files of any bitrate from a folder and it's subfolders. The rest will be decided later.
+Web-server with main goal of streaming music in small chunks from all `mp3` files of any bitrate from a folder and it's subfolders. Additional features will be decided at a later stage.
 
-Initially built with no dependencies (**and possibly not up to any of HTTP/web security standarts**), it is currently usable, althrough highly unstable.
+Initially built with no dependencies (**and possibly not up to any of HTTP/web security standards**), it is currently usable, althrough highly unstable.
 
 ## Limitations
-- Only `mp3` files are supported for now.
-- As no SSL or authorization is planned yet, for real-world backend usage you will need to pair Zest with reverse proxy that supports everything you need.
+- Currently, only `mp3` files are supported.
+- As SSL or authorization has not yet been planned, Zest will need to be paired with a reverse proxy that supports necessary features for real-world backend usage.
 
 ## Player
 
-Zest comes with a [default player/frontend](./player/).
+Zest includes a [default player/frontend](./player/).
 
 ## API
 
