@@ -1,4 +1,3 @@
-- -q flag to silence everything.
 - Transcode everything to webm?
 - JSON struct.
 - Hot reindexing.
