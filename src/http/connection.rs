@@ -1,5 +1,8 @@
+use crate::common::util::url_decode;
+use std::collections::HashMap;
 use std::io::{Error, ErrorKind, Read, Write};
 use std::net::TcpStream;
+use std::str;
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -23,7 +26,7 @@ pub enum HttpVersion {
     V0_9,
     V1,
     V1_1,
-    Unknown
+    Unknown,
 }
 
 impl Default for HttpVersion {
@@ -32,9 +35,12 @@ impl Default for HttpVersion {
     }
 }
 
-#[derive(Debug)]
-pub struct HttpConnection {
-    stream: TcpStream,
+type Headers = HashMap<String, String>;
+type Parameters = HashMap<String, String>;
+type Path = String;
+
+#[derive(Debug, Default)]
+struct HttpRequest {
     method: HttpMethod,
     path: Path,
     raw_path: String,
@@ -43,83 +49,7 @@ pub struct HttpConnection {
     parameters: Option<Parameters>,
 }
 
-impl Write for HttpConnection {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.stream.write(buf)
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.stream.flush()
-    }
-}
-
-use std::collections::HashMap;
-use std::str;
-
-use crate::common::util::url_decode;
-
-type Headers = HashMap<String, String>;
-type Parameters = HashMap<String, String>;
-type Path = String;
-
-const MAX_HEADER_SIZE: usize = 1024 * 4;
-
-/// Returns `Err` when:
-/// - size of headers exceeded `MAX_HEADER_SIZE`.
-/// - the request line is malformed.
-/// - a header is malformed.
-fn parse_http_headers(
-    connection: &mut HttpConnection,
-) -> Result<(), Error> {
-    let mut total_bytes_read = 0;
-    let mut current_line = String::new();
-    let mut prev_character: Option<char> = None;
-    let mut buffer = [0; 1];
-
-    loop {
-        match connection.stream_mut().read(&mut buffer)? {
-            0 => break,
-            _ => {
-                let character = buffer[0] as char;
-                total_bytes_read += 1;
-
-                if character == '\n' {
-                    if prev_character == Some('\r') && current_line.is_empty() {
-                        return Ok(());
-                    } else if connection.path().is_empty() {
-                        let (method, path, raw_path, parameters, version) = parse_request_line(&current_line)?;
-
-                        connection.method = method;
-                        connection.path = path;
-                        connection.raw_path = raw_path;
-                        connection.version = version;
-                        connection.parameters = parameters;
-                    } else {
-                        parse_header_line(&current_line, &mut connection.headers)?;
-                    }
-
-                    current_line.clear();
-                } else if character != '\r' {
-                    current_line.push(character);
-                }
-
-                prev_character = Some(character);
-            }
-        }
-
-        if total_bytes_read > MAX_HEADER_SIZE {
-            let message = format!("Header size exceeded {} bytes.", MAX_HEADER_SIZE);
-            let err = std::io::Error::new(ErrorKind::OutOfMemory, message);
-            return Err(err);
-        }
-    }
-
-    let message = format!("Malformed headers.");
-    let err = std::io::Error::new(ErrorKind::InvalidData, message);
-    return Err(err);
-}
-
-fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, String, Option<Parameters>, HttpVersion), Error> {
+fn parse_request_line(line: &str, request: &mut HttpRequest) -> Result<(), Error> {
     // This supports multiple spaces between values on request line.
     let mut parts = line.split_whitespace();
 
@@ -139,10 +69,12 @@ fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, String, Option<Pa
     };
 
     let raw_path = parts.next().unwrap().to_owned();
+    let decoded_raw_path = url_decode(&raw_path)?;
+
     let mut path_split = raw_path.split('?');
 
     let path = path_split.next().unwrap_or("/").to_owned();
-    let decoded_path = url_decode(path)?;
+    let decoded_path = url_decode(&path)?;
 
     let parameters = if let Some(raw_parameters) = path_split.next() {
         let mut parameters = HashMap::new();
@@ -176,15 +108,19 @@ fn parse_request_line(line: &str) -> Result<(HttpMethod, Path, String, Option<Pa
             "http/0.9" => HttpVersion::V0_9,
             "http/1.0" => HttpVersion::V1,
             "http/1.1" => HttpVersion::V1_1,
-            _ => HttpVersion::Unknown
+            _ => HttpVersion::Unknown,
         }
     } else {
         HttpVersion::V1
     };
 
-    let decoded_raw_path = url_decode(raw_path)?;
+    request.method = method;
+    request.path = decoded_path;
+    request.raw_path = decoded_raw_path;
+    request.version = version;
+    request.parameters = parameters;
 
-    Ok((method, decoded_path, decoded_raw_path, parameters, version))
+    Ok(())
 }
 
 fn parse_header_line(line: &str, headers: &mut HashMap<String, String>) -> Result<(), Error> {
@@ -195,6 +131,73 @@ fn parse_header_line(line: &str, headers: &mut HashMap<String, String>) -> Resul
         let message = "Invalid header line.";
         let err = Error::new(ErrorKind::InvalidInput, message);
         Err(err)
+    }
+}
+
+const MAX_HEADER_SIZE: usize = 1024 * 4;
+
+/// Returns `Err` when:
+/// - size of headers exceeded `MAX_HEADER_SIZE`.
+/// - the request line is malformed.
+/// - a header is malformed.
+fn parse_http_headers(stream: &mut TcpStream) -> Result<HttpRequest, Error> {
+    let mut total_bytes_read = 0;
+    let mut current_line = String::new();
+    let mut prev_character: Option<char> = None;
+    let mut buffer = [0; 1];
+
+    let mut request: HttpRequest = Default::default();
+
+    loop {
+        match stream.read(&mut buffer)? {
+            0 => break,
+            _ => {
+                let character = buffer[0] as char;
+                total_bytes_read += 1;
+
+                if character == '\n' {
+                    if prev_character == Some('\r') && current_line.is_empty() {
+                        return Ok(request);
+                    } else if request.path.is_empty() {
+                        parse_request_line(&current_line, &mut request)?;
+                    } else {
+                        parse_header_line(&current_line, &mut request.headers)?;
+                    }
+
+                    current_line.clear();
+                } else if character != '\r' {
+                    current_line.push(character);
+                }
+
+                prev_character = Some(character);
+            }
+        }
+
+        if total_bytes_read > MAX_HEADER_SIZE {
+            let message = format!("Header size exceeded {} bytes.", MAX_HEADER_SIZE);
+            let err = std::io::Error::new(ErrorKind::OutOfMemory, message);
+            return Err(err);
+        }
+    }
+
+    let message = format!("Malformed headers.");
+    let err = std::io::Error::new(ErrorKind::InvalidData, message);
+    return Err(err);
+}
+
+#[derive(Debug)]
+pub struct HttpConnection {
+    stream: TcpStream,
+    request: HttpRequest,
+}
+
+impl Write for HttpConnection {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.stream.write(buf)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.stream.flush()
     }
 }
 
@@ -213,17 +216,12 @@ impl HttpConnection {
     /// - the request line is malformed.
     /// - a header is malformed.
     pub fn new(mut stream: TcpStream) -> Result<Self, Error> {
+        let request = parse_http_headers(&mut stream)?;
+
         let mut connection = HttpConnection {
             stream: stream,
-            method: Default::default(),
-            path: Default::default(),
-            raw_path: Default::default(),
-            version: Default::default(),
-            headers: Default::default(),
-            parameters: Default::default()
+            request: request,
         };
-
-        parse_http_headers(&mut connection)?;
 
         Ok(connection)
     }
@@ -245,22 +243,22 @@ impl HttpConnection {
     }
 
     pub fn method(&self) -> HttpMethod {
-        self.method
+        self.request.method
     }
 
     pub fn path(&self) -> &String {
-        &self.path
+        &self.request.path
     }
 
     pub fn raw_path(&self) -> &String {
-        &self.raw_path
+        &self.request.raw_path
     }
 
     pub fn headers(&self) -> &Headers {
-        &self.headers
+        &self.request.headers
     }
 
     pub fn params(&self) -> Option<&Parameters> {
-        self.parameters.as_ref()
+        self.request.parameters.as_ref()
     }
 }
