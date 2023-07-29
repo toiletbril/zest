@@ -4,7 +4,7 @@ use std::io::{Error, Read, Seek, SeekFrom};
 use crate::common::{util::{iter_to_json_string, Am}, logger::Verbosity};
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
-use crate::{log, Log, Logger, log_higher_verbosity};
+use crate::{log, Log, Logger, log_geq};
 
 use super::index::get_music_index;
 
@@ -67,7 +67,7 @@ fn serve_music_chunk(
     chunk_index: usize,
     path: String,
 ) -> Result<(), Error> {
-    log_higher_verbosity!(logger, Verbosity::Debug, "Reading from '{}'...", path);
+    log_geq!(logger, Verbosity::Debug, "Reading from '{}'...", path);
 
     let mut file = File::open(&path)?;
     let max_size = file.metadata().map(|x| x.len()).unwrap_or(0) as usize;

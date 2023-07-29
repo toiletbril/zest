@@ -2,7 +2,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::{Builder, JoinHandle};
 
-use crate::{common::logger::{Log, Logger, Verbosity}, DEFAULT_THREAD_COUNT};
+use crate::{common::logger::{Log, Logger}, DEFAULT_THREAD_COUNT};
 use crate::common::util::Am;
 use crate::log;
 

@@ -6,7 +6,7 @@ use crate::common::threads::ThreadPool;
 use crate::common::util::Am;
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
-use crate::{log, log_higher_verbosity, log_matching_verbosity, log_lower_verbosity};
+use crate::{log, log_geq, log_eq, log_leq};
 
 type DispatcherJob = fn(&mut HttpConnection, &Am<Logger>) -> Result<(), Box<dyn Error>>;
 
@@ -31,7 +31,7 @@ pub fn start_dispatcher<'a>(
     for connection in listener.incoming() {
         match connection {
             Ok(stream) => {
-                log_higher_verbosity!(logger, Verbosity::Debug, "Dispatching a thread for {:?}", stream);
+                log_geq!(logger, Verbosity::Debug, "Dispatching a thread for {:?}", stream);
 
                 let logger_clone = logger.clone();
 
@@ -58,12 +58,12 @@ fn handle_stream<'a>(
     let connection = HttpConnection::new(stream);
 
     if let Ok(mut connection) = connection {
-        log_lower_verbosity!(logger, Verbosity::Default, "{} => {:?} {:?}",
+        log_leq!(logger, Verbosity::Default, "{} => {:?} {:?}",
             connection.peer_string(), connection.method(), connection.raw_path());
 
-        log_matching_verbosity!(logger, Verbosity::Details, "Connection: {:?}", connection.stream());
+        log_eq!(logger, Verbosity::Details, "Connection: {:?}", connection.stream());
 
-        log_higher_verbosity!(logger, Verbosity::Debug, "Connection: {:?}", connection);
+        log_geq!(logger, Verbosity::Debug, "Connection: {:?}", connection);
 
         if let Err(err) = job(&mut connection, &logger) {
             HttpResponse::new(500, "Internal Server Error")
@@ -74,7 +74,7 @@ fn handle_stream<'a>(
 
             Err(err)
         } else {
-            log_higher_verbosity!(logger, Verbosity::Debug, "Closing {:?}", connection.stream_mut());
+            log_geq!(logger, Verbosity::Debug, "Closing {:?}", connection.stream_mut());
 
             drop(connection);
             Ok(())

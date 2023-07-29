@@ -7,7 +7,7 @@ use std::time::SystemTime;
 
 /// This filters out complex messages if not needed.
 #[repr(u8)]
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub enum Verbosity {
     Default,
     Details,
@@ -29,9 +29,7 @@ impl From<u8> for Verbosity {
             0 => Verbosity::Default,
             1 => Verbosity::Details,
             2 => Verbosity::Debug,
-            _ => {
-                Verbosity::Debug
-            }
+            _ => Verbosity::Debug,
         }
     }
 }
@@ -47,14 +45,13 @@ impl Verbosity {
 
 struct LogEntry {
     message: String,
-    verbosity: Verbosity
 }
 
 type LogQueue = Vec<LogEntry>;
 
 pub trait Log {
     /// Push a message into log queue.
-    fn log(&mut self, verbosity: Verbosity, message: String);
+    fn log(&mut self, message: String);
     /// Flush the contents of the log queue and clear it.
     fn flush(&mut self) -> Result<(), Error>;
     fn verbosity(&self) -> Verbosity;
@@ -98,42 +95,45 @@ macro_rules! time {
 macro_rules! log {
     ($logger:expr, $($msg:expr),*) => {
         if let Ok(mut logger) = $logger.lock() {
-            logger.log(Verbosity::Default, format!($($msg),*));
+            logger.log(format!($($msg),*));
         }
     };
 }
 
-/// Log if verbosity of the logger is higher or equals to specified.
+// TODO: Get rid of these.
+
+
 #[macro_export]
-macro_rules! log_higher_verbosity {
+/// Logs if verbosity is greater or equal to specified.
+macro_rules! log_geq {
     ($logger:expr, $verbosity_pattern:expr, $($msg:expr),*) => {
         if let Ok(mut logger) = $logger.lock() {
             if logger.verbosity() as u8 >= $verbosity_pattern as u8 {
-                logger.log($verbosity_pattern, format!($($msg),*));
+                logger.log(format!($($msg),*));
             }
         }
     };
 }
 
-/// Log if verbosity of the logger is higher or equals to specified.
 #[macro_export]
-macro_rules! log_matching_verbosity {
+/// Logs if verbosity is equal to specified.
+macro_rules! log_eq {
     ($logger:expr, $verbosity_pattern:expr, $($msg:expr),*) => {
         if let Ok(mut logger) = $logger.lock() {
             if logger.verbosity() as u8 == $verbosity_pattern as u8 {
-                logger.log($verbosity_pattern, format!($($msg),*));
+                logger.log(format!($($msg),*));
             }
         }
     };
 }
 
-/// Log if verbosity of the logger is lower or equals to specified.
 #[macro_export]
-macro_rules! log_lower_verbosity {
+/// Logs if verbosity is less or equal to specified.
+macro_rules! log_leq {
     ($logger:expr, $verbosity_pattern:expr, $($msg:expr),*) => {
         if let Ok(mut logger) = $logger.lock() {
             if logger.verbosity() as u8 <= $verbosity_pattern as u8 {
-                logger.log($verbosity_pattern, format!($($msg),*));
+                logger.log(format!($($msg),*));
             }
         }
     };
@@ -159,8 +159,10 @@ impl Logger {
             let file = File::create(format!("./zest-{}.log", i));
 
             if let Err(err) = file {
-                panic!("*** An error occured while creating a file for the logger: {}",
-                      err);
+                panic!(
+                    "*** An error occured while creating a file for the logger: {}",
+                    err
+                );
             }
 
             file.unwrap()
@@ -171,20 +173,31 @@ impl Logger {
             queue: vec![],
             hour_offset: utc,
             log_file: file,
-            use_verbosity: verbosity
+            use_verbosity: verbosity,
         };
     }
 }
 
 impl Log for Logger {
-    fn log(&mut self, verbosity: Verbosity, message: String) {
-        let message =
-            format!("{} [{}] {:?} -> {}: {}",
-                    self.index, time!(self.hour_offset), current().id(),
-                    current().name().map_or("MAIN".to_string(), |x| x.to_uppercase()),
-                    message);
+    fn log(&mut self, message: String) {
+        let time = time!(self.hour_offset);
 
-        self.queue.push(LogEntry { message: message, verbosity: verbosity });
+        let thread = current();
+        let thread_id = thread.id();
+        let thread_name = thread
+            .name()
+            .map_or("MAIN".to_string(), |x| x.to_uppercase());
+
+        let message = format!(
+            "{} [{}] {:?} -> {}: {}",
+            self.index, time, thread_id, thread_name, message
+        );
+
+        let entry = LogEntry {
+            message: message,
+        };
+
+        self.queue.push(entry);
 
         self.index += 1;
     }
@@ -192,10 +205,7 @@ impl Log for Logger {
     fn flush(&mut self) -> Result<(), Error> {
         if !&self.queue.is_empty() {
             for entry in &self.queue {
-                if entry.verbosity as u8 <= self.use_verbosity as u8 {
-
-                    println!("{}", entry.message);
-                }
+                println!("{}", entry.message);
 
                 self.log_file.as_ref()
                     .map(|mut x| write!(x, "{}\n", entry.message));
