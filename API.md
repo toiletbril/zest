@@ -41,7 +41,7 @@ Returns a list of all available music track names.
     - `Content-Type`: `application/json`
     - Body: An array containing all available music track names.
 
-  Example Request:
+Example Request:
 ```http
 GET /api/v1/music/all HTTP/1.1
 Origin: some-domain.com
