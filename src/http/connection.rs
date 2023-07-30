@@ -1,7 +1,7 @@
 use crate::common::util::url_decode;
 use std::collections::HashMap;
 use std::io::{Error, ErrorKind, Read, Write};
-use std::net::TcpStream;
+use std::net::{TcpStream, Shutdown};
 use std::str;
 
 #[repr(u8)]
@@ -21,7 +21,7 @@ impl Default for HttpMethod {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum HttpVersion {
     V0_9,
     V1,
@@ -54,18 +54,22 @@ fn parse_request_line(line: &str, request: &mut HttpRequest) -> Result<(), Error
     let mut parts = line.split_whitespace();
 
     if parts.clone().count() < 2 {
-        let message = "Invalid request line.";
+        let message = "Invalid number of arguments in the request line";
         let err = Error::new(ErrorKind::InvalidInput, message);
         return Err(err);
     }
 
-    let method = match parts.next().unwrap() {
-        "GET" => HttpMethod::GET,
-        "POST" => HttpMethod::POST,
-        "PUT" => HttpMethod::PUT,
-        "PATCH" => HttpMethod::PATCH,
-        "DELETE" => HttpMethod::DELETE,
-        _ => HttpMethod::Unknown,
+    let method = match parts.next().unwrap().to_lowercase().as_ref() {
+        "get" => HttpMethod::GET,
+        "post" => HttpMethod::POST,
+        "put" => HttpMethod::PUT,
+        "patch" => HttpMethod::PATCH,
+        "delete" => HttpMethod::DELETE,
+        _ => {
+            let message = "Invalid method";
+            let err = Error::new(ErrorKind::InvalidInput, message);
+            return Err(err);
+        }
     };
 
     let raw_path = parts.next().unwrap().to_owned();
@@ -105,13 +109,16 @@ fn parse_request_line(line: &str, request: &mut HttpRequest) -> Result<(), Error
 
     let version: HttpVersion = if let Some(version_part) = parts.next() {
         match version_part.to_ascii_lowercase().as_ref() {
-            "http/0.9" => HttpVersion::V0_9,
             "http/1.0" => HttpVersion::V1,
             "http/1.1" => HttpVersion::V1_1,
-            _ => HttpVersion::Unknown,
+            _ => {
+                let message = "Invalid HTTP version";
+                let err = Error::new(ErrorKind::InvalidInput, message);
+                return Err(err);
+            }
         }
     } else {
-        HttpVersion::V1
+        HttpVersion::V0_9
     };
 
     request.method = method;
@@ -125,10 +132,15 @@ fn parse_request_line(line: &str, request: &mut HttpRequest) -> Result<(), Error
 
 fn parse_header_line(line: &str, headers: &mut HashMap<String, String>) -> Result<(), Error> {
     if let Some((key, value)) = line.split_once(':') {
-        headers.insert(key.to_lowercase().to_owned(), value.trim().to_owned());
+
+        let trimmed_key = key.trim().to_lowercase().to_owned();
+        let trimmed_value = value.trim().to_owned();
+
+        headers.insert(trimmed_key, trimmed_value);
+
         Ok(())
     } else {
-        let message = "Invalid header line.";
+        let message = "Invalid header line";
         let err = Error::new(ErrorKind::InvalidInput, message);
         Err(err)
     }
@@ -140,7 +152,7 @@ const MAX_HEADER_SIZE: usize = 1024 * 4;
 /// - size of headers exceeded `MAX_HEADER_SIZE`.
 /// - the request line is malformed.
 /// - a header is malformed.
-fn parse_http_headers(stream: &mut TcpStream) -> Result<HttpRequest, Error> {
+fn parse_http_request(stream: &mut TcpStream) -> Result<HttpRequest, Error> {
     let mut total_bytes_read = 0;
     let mut current_line = String::new();
     let mut prev_character: Option<char> = None;
@@ -174,13 +186,13 @@ fn parse_http_headers(stream: &mut TcpStream) -> Result<HttpRequest, Error> {
         }
 
         if total_bytes_read > MAX_HEADER_SIZE {
-            let message = format!("Header size exceeded {} bytes.", MAX_HEADER_SIZE);
+            let message = format!("Header size exceeded {} bytes", MAX_HEADER_SIZE);
             let err = std::io::Error::new(ErrorKind::OutOfMemory, message);
             return Err(err);
         }
     }
 
-    let message = format!("Malformed headers.");
+    let message = format!("Malformed headers");
     let err = std::io::Error::new(ErrorKind::InvalidData, message);
     return Err(err);
 }
@@ -203,7 +215,7 @@ impl Write for HttpConnection {
 
 impl Drop for HttpConnection {
     fn drop(&mut self) {
-        drop(&mut self.stream)
+        let _ = self.stream.shutdown(Shutdown::Both);
     }
 }
 
@@ -216,7 +228,7 @@ impl HttpConnection {
     /// - the request line is malformed.
     /// - a header is malformed.
     pub fn new(mut stream: TcpStream) -> Result<Self, Error> {
-        let request = parse_http_headers(&mut stream)?;
+        let request = parse_http_request(&mut stream)?;
 
         let mut connection = HttpConnection {
             stream: stream,
@@ -260,5 +272,141 @@ impl HttpConnection {
 
     pub fn params(&self) -> Option<&Parameters> {
         self.request.parameters.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_request_line_http0_9() {
+        let mut request = HttpRequest::default();
+        parse_request_line("GET /hello", &mut request).unwrap();
+
+        assert_eq!(request.method, HttpMethod::GET);
+        assert_eq!(request.path, "/hello");
+        assert_eq!(request.version, HttpVersion::V0_9);
+    }
+
+    #[test]
+    fn test_parse_request_line_http1_0() {
+        let mut request = HttpRequest::default();
+        parse_request_line("POST /world HTTP/1.0", &mut request).unwrap();
+
+        assert_eq!(request.method, HttpMethod::POST);
+        assert_eq!(request.path, "/world");
+        assert_eq!(request.version, HttpVersion::V1);
+    }
+
+    #[test]
+    fn test_parse_request_line_http1_1() {
+        let mut request = HttpRequest::default();
+        parse_request_line("DELETE /sailor HTTP/1.1", &mut request).unwrap();
+
+        assert_eq!(request.method, HttpMethod::DELETE);
+        assert_eq!(request.path, "/sailor");
+        assert_eq!(request.version, HttpVersion::V1_1);
+    }
+
+    #[test]
+    fn test_parse_request_line_unknown_method() {
+        let mut request = HttpRequest::default();
+        let result = parse_request_line("FOO /path HTTP/1.1", &mut request);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_request_line_unknown_version() {
+        let mut request = HttpRequest::default();
+        let result = parse_request_line("GET /path HTTP/69.0", &mut request);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_request_line_http1_0_extra_spaces() {
+        let mut request = HttpRequest::default();
+        parse_request_line("GET   /path   HTTP/1.0", &mut request).unwrap();
+
+        assert_eq!(request.method, HttpMethod::GET);
+        assert_eq!(request.path, "/path");
+        assert_eq!(request.version, HttpVersion::V1);
+    }
+
+    #[test]
+    fn test_parse_request_line_http1_1_lower_case() {
+        let mut request = HttpRequest::default();
+        parse_request_line("get /path http/1.1", &mut request).unwrap();
+
+        assert_eq!(request.method, HttpMethod::GET);
+        assert_eq!(request.path, "/path");
+        assert_eq!(request.version, HttpVersion::V1_1);
+    }
+
+    #[test]
+    fn test_parse_header_line_valid() {
+        let mut headers = Headers::new();
+        parse_header_line("Content-Type: text/html", &mut headers).unwrap();
+
+        assert_eq!(headers.get("content-type").unwrap(), "text/html");
+    }
+
+    #[test]
+    fn test_parse_header_line_invalid() {
+        let mut headers = Headers::new();
+        let result = parse_header_line("Invalid-Header", &mut headers);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_header_line_valid_extra_spaces() {
+        let mut headers = Headers::new();
+        parse_header_line("Content-Type   :   text/html", &mut headers).unwrap();
+
+        assert_eq!(headers.get("content-type").unwrap(), "text/html");
+    }
+
+    #[test]
+    fn test_parse_header_line_valid_case_insensitive() {
+        let mut headers = Headers::new();
+        parse_header_line("content-type: text/html", &mut headers).unwrap();
+
+        assert_eq!(headers.get("content-type").unwrap(), "text/html");
+    }
+
+    fn start_test_listener(payload: &[u8]) -> TcpStream {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        let mut writer = std::net::TcpStream::connect(addr).unwrap();
+
+        writer.write(payload).unwrap();
+
+        let (reader, _) = listener.accept().unwrap();
+
+        reader
+    }
+
+    #[test]
+    fn test_parse_http_request() {
+        let payload =
+            b"PATCH /api/v1/music/all?hello=world&what=nothing HTTP/1.0\r\nHost: www.example.com\r\n\r\n";
+
+        let mut stream = start_test_listener(payload);
+
+        match parse_http_request(&mut stream) {
+            Ok(request) => {
+                assert_eq!(request.method, HttpMethod::PATCH);
+                assert_eq!(request.path, "/api/v1/music/all");
+                assert_eq!(request.version, HttpVersion::V1);
+                assert_eq!(request.headers.get("host").unwrap(), "www.example.com");
+                assert_eq!(request.parameters.as_ref().unwrap().get("hello").unwrap(), "world");
+                assert_eq!(request.parameters.as_ref().unwrap().get("what").unwrap(), "nothing");
+            }
+            Err(e) => panic!("Test failed: {:?}", e),
+        }
     }
 }
