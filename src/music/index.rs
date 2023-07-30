@@ -191,6 +191,9 @@ fn make_index_file(index: HashMap<FileName, FilePath>, path: &FilePath) -> Resul
         ));
     }
 
+    assert!(path.chars().last().map_or(false, |c| c != '/' && c != '\\'),
+            "Path should not end with a slash");
+
     let mut i = 0;
 
     while Path::new(format!("./zest-index-{}.json", i).as_str()).exists() {
@@ -219,4 +222,35 @@ fn make_index_file(index: HashMap<FileName, FilePath>, path: &FilePath) -> Resul
     write!(writer, "]}}")?;
 
     Ok(filename)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_make_and_load_index_file() {
+        let mut index = HashMap::new();
+        let path = "music";
+
+        index.insert("file1".to_string(), "/file1.mp3".to_string());
+        index.insert("file2".to_string(), "/file2.mp3".to_string());
+
+        match make_index_file(index, &path.to_string()) {
+            Ok(filename) => {
+                match load_index(filename.clone()) {
+                    Ok(music_index) => {
+                        let _ = fs::remove_file(filename);
+
+                        assert_eq!(music_index.path(), path);
+                        assert_eq!(music_index.map().len(), 2);
+                        assert_eq!(music_index.get("file1").unwrap(), "music/file1.mp3")
+                    }
+                    Err(e) => panic!("Test failed: {:?}", e),
+                };
+            }
+            Err(e) => panic!("Test failed: {:?}", e),
+        }
+    }
 }
