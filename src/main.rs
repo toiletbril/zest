@@ -16,6 +16,9 @@ mod http;
 mod music;
 mod server;
 
+#[cfg(test)]
+mod tests;
+
 use common::logger::{Log, Logger};
 
 use server::dispatcher::start_dispatcher;
