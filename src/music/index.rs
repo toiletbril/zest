@@ -1,4 +1,4 @@
-use crate::common::{util::{FileName, FilePath, IndexMap}, logger::Verbosity};
+use crate::common::{util::{iter_to_json_string, FileName, FilePath}, logger::Verbosity};
 use std::{
     collections::HashMap,
     fs::{self, File},
@@ -7,6 +7,8 @@ use std::{
     sync::Once,
 };
 
+pub type IndexMap = HashMap<FileName, FilePath>;
+
 #[derive(Debug)]
 pub struct MusicIndex {
     map: IndexMap,
@@ -14,8 +16,8 @@ pub struct MusicIndex {
 }
 
 impl MusicIndex {
-    pub fn map(&self) -> &IndexMap {
-        &self.map
+    pub fn key_json_array(&self) -> String {
+        iter_to_json_string(self.map.keys())
     }
 
     pub fn get(&self, item: &str) -> Option<FilePath> {
@@ -24,10 +26,6 @@ impl MusicIndex {
         } else {
             None
         }
-    }
-
-    pub fn path(&self) -> &FilePath {
-        &self.path
     }
 }
 
@@ -243,8 +241,7 @@ mod tests {
                     Ok(music_index) => {
                         let _ = fs::remove_file(filename);
 
-                        assert_eq!(music_index.path(), path);
-                        assert_eq!(music_index.map().len(), 2);
+                        assert_eq!(music_index.map.len(), 2);
                         assert_eq!(music_index.get("file1").unwrap(), "music/file1.mp3")
                     }
                     Err(e) => panic!("Test failed: {:?}", e),

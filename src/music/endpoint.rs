@@ -1,12 +1,11 @@
 use std::fs::File;
 use std::io::{Error, Read, Seek, SeekFrom};
 
-use crate::common::{util::{iter_to_json_string, Am}, logger::Verbosity};
+use crate::common::{util::Am, logger::Verbosity};
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
 use crate::{log, Log, Logger, log_geq};
-
-use super::index::get_music_index;
+use crate::music::index::{get_music_index};
 
 const CHUNK_SIZE: usize = 1024 * 128; // 128 kb
 
@@ -17,7 +16,7 @@ pub fn list_handler(connection: &mut HttpConnection, logger: &Am<Logger>) -> Res
 
     return HttpResponse::new(200, "OK")
         .allow_all_origins(connection)
-        .set_json_body(&iter_to_json_string(index.map().keys()))
+        .set_json_body(&index.key_json_array())
         .send(connection);
 }
 
