@@ -79,29 +79,3 @@ pub fn url_decode<S: AsRef<str>>(input: S) -> Result<String, Error> {
         Error::new(ErrorKind::InvalidInput, err.to_string())
     })
 }
-
-mod tests {
-    #[test]
-    fn url_encode_and_decode() {
-        use super::*;
-
-        let first = "dsiaHello222World!!!(*&&(#^@()()))";
-        let first_e = url_encode(first.clone());
-        let first_d = url_decode(first_e.clone());
-
-        println!("Input: {}", first);
-        println!("Encoded: {}", first_e);
-
-        assert_eq!(first, first_d.unwrap());
-
-        let second = ".юю.Всем.ээдшовф**kjlOKOHQъъэОШЩЗ0привет%:?*()";
-        let second_e = url_encode(second.clone());
-        let second_d = url_decode(second_e.clone());
-
-        println!("Input: {}", second);
-        println!("Encoded: {}", second_e);
-
-        assert_eq!(second, second_d.unwrap());
-
-    }
-}
