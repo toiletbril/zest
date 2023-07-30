@@ -1,4 +1,5 @@
-- Tests.
+- Tests for `http` module.
+- Move from json to sqlite3?
 - Transcode everything to webm?
 - JSON struct.
 - Hot reindexing.
