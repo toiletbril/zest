@@ -36,13 +36,10 @@ pub fn chunk_handler(
         .and_then(|x| x.get("name"));
 
     if let Some(filename) = track_result {
-        let index = get_music_index();
-
-        let filepath = get_music_index().map().get(filename);
+        let filepath = get_music_index().get(filename);
 
         if let Some(path) = filepath {
-            let music_path = format!("{}{}", index.path(), path);
-            return serve_music_chunk(connection, logger, chunk, music_path);
+            return serve_music_chunk(connection, logger, chunk, path);
         } else {
             log!(logger, "{} <= 404 No such track", connection.peer_string());
 

@@ -18,6 +18,14 @@ impl MusicIndex {
         &self.map
     }
 
+    pub fn get(&self, item: &str) -> Option<FilePath> {
+        if let Some(value) = self.map.get(item) {
+            Some(self.path.clone() + value)
+        } else {
+            None
+        }
+    }
+
     pub fn path(&self) -> &FilePath {
         &self.path
     }
