@@ -6,7 +6,7 @@ use std::time::Duration;
 
 extern crate toiletcli;
 
-use toiletcli::colors::*;
+use toiletcli::colors::{Color, Style};
 use toiletcli::common::name_from_path;
 use toiletcli::flags;
 use toiletcli::flags::{parse_flags, Flag, FlagType};
@@ -16,15 +16,13 @@ mod http;
 mod music;
 mod server;
 
-use common::logger::{Log, Logger};
+use common::logger::{Log, Logger, Verbosity};
 
 use server::dispatcher::start_dispatcher;
 use server::router::route;
 
 use music::index::init_music_index;
 use music::index::make_index;
-
-use crate::common::logger::Verbosity;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
