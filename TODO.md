@@ -1,3 +1,4 @@
+- Add subcommands for `toiletcli`.
 - Tests for `http` module.
 - Move from json to sqlite3?
 - Transcode everything to webm?
