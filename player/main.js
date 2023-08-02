@@ -1,6 +1,9 @@
 const ZEST_PORT = 6969;
 const ZEST_ADDRESS = window.location.hostname; // same machine
 const CHUNK_SIZE = 1024 * 128; // 128 kb
+const AUTOPLAY_ENABLED = true;
+
+const VERSION = "0.0.1"
 
 const MUSIC_ENDPOINT =
     "http://" +
@@ -11,8 +14,14 @@ class AudioPlayer {
     constructor(audioPlayer) {
         this.audioPlayer = audioPlayer;
 
+        this.initQueue();
         this.initFetch();
         this.initSource();
+    }
+
+    initQueue() {
+        this.queue = [];
+        this.currentIndex = 0;
     }
 
     initFetch() {
@@ -72,8 +81,13 @@ class AudioPlayer {
     }
 
     setPlayingTrackName(trackName) {
-        document.title = trackName + " | Zest Player";
+        document.title = `${trackName} | Zest`;
         document.getElementById("currentTrackName").textContent = trackName;
+    }
+
+    resetPlayingTrackName() {
+        document.title = `Zest Player`;
+        document.getElementById("currentTrackName").textContent = "No track is playing.";
     }
 
     appendBuffer(buffer) {
@@ -81,6 +95,17 @@ class AudioPlayer {
             this.audioQueue.push(buffer);
         } else {
             this.audioBuffer.appendBuffer(buffer);
+        }
+    }
+
+    nextTrack() {
+        this.currentIndex++;
+
+        if (this.currentIndex < this.queue.length) {
+            this.resetAndPlayTrack(this.queue[this.currentIndex]);
+        } else {
+            this.currentIndex = 0;
+            this.reset();
         }
     }
 
@@ -123,7 +148,19 @@ class AudioPlayer {
             this.fetching = true;
 
             fetchChunks(url)
-                .then(() => this.fetching = false)
+                .then(() => {
+                    this.fetching = false;
+
+                    if (AUTOPLAY_ENABLED) {
+                        this.audioPlayer = this.audioPlayer;
+
+                        this.audioPlayer.onwaiting = () => {
+                            if (!this.fetching) {
+                                this.nextTrack();
+                            }
+                        }
+                    }
+                })
                 .catch((err) => console.error("Error while fetching:", err));
         }
     }
@@ -145,6 +182,8 @@ class AudioPlayer {
     }
 
     playTrack(trackName) {
+        console.log(`Playing ${trackName}...`)
+
         this.fetchTrack(trackName);
         this.setPlayingTrackName(trackName);
 
@@ -159,12 +198,17 @@ class AudioPlayer {
         const resetPlayer = () => {
             this.audioPlayer.src = "";
             this.audioPlayer.currentTime = 0;
+            this.resetPlayingTrackName();
             this.initSource();
         };
 
         return new Promise((resolve) => {
+            console.log("Waiting to reset player...");
+
             const interval = setInterval(() => {
-                if (this.fetching === false) {
+                if (!this.fetching) {
+                    console.log("Resetting player...");
+
                     clearInterval(interval);
                     resetPlayer();
                     resolve();
@@ -175,7 +219,7 @@ class AudioPlayer {
 
     waitForDuration() {
         const interval = setInterval(() => {
-            if (!this.audioBuffer.updating) {
+            if (!this.audioPlayer.updating) {
                 clearInterval(interval);
                 try {
                     this.mediaSource.duration = this.totalDuration;
@@ -220,7 +264,17 @@ class MusicList {
 
             trackLink.addEventListener("click", () => {
                 event.preventDefault();
+
                 this.player.resetAndPlayTrack(trackName);
+
+                const clickedSongIndex = trackArray.indexOf(trackName);
+
+                this.player.queue = [
+                    ...trackArray.slice(clickedSongIndex),
+                    ...trackArray.slice(0, clickedSongIndex)
+                ];
+
+                this.player.currentIndex = 0;
             });
 
             const trackItem = document.createElement("div");
@@ -245,6 +299,7 @@ class MusicList {
 }
 
 window.onload = () => {
+    const versionText = document.getElementById("versionText");
     const audioPlayer = document.getElementById("audioControls");
     const searchInput = document.getElementById("searchInput");
     const trackList = document.getElementById("trackList");
@@ -256,6 +311,8 @@ window.onload = () => {
 
     searchInput.addEventListener("input", (event) => musicList.searchTracks(event));
     searchInput.addEventListener("keyup", (event) => musicList.searchTracks(event));
+
+    versionText.textContent = VERSION;
 
     if (!MediaSource.isTypeSupported("audio/mpeg")) {
         alert(

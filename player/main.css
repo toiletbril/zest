@@ -12,28 +12,6 @@ a {
     text-decoration: none;
 }
 
-.main-trackList-trackEntry {
-    display: inline-block;
-    padding: 6px 12px;
-    color: black;
-    background-color: white;
-    cursor: pointer;
-}
-
-.main-trackList-trackEntry:hover {
-    outline: 2px solid paleturquoise;
-}
-
-.mainTitle {
-    font-size: 24px;
-    text-align: center;
-}
-
-.musicPlayer-currentTrackName {
-    font-size: 18px;
-    margin: 10px 20px;
-}
-
 .container {
     margin: 10px auto;
     padding: 20px;
@@ -46,8 +24,26 @@ a {
     display: flex;
 }
 
+.flexCenter {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.textCenter {
+    text-align: center;
+}
+
 .main {
     width: 50%;
+}
+
+.main-title-inner-text {
+    font-size: 24px;
+}
+
+.main-title-inner-version {
+    font-weight: normal;
+    color: cadetblue;
 }
 
 .main-searchInput {
@@ -80,7 +76,16 @@ a {
 }
 
 .main-trackList-trackEntry {
+    display: inline-block;
     margin: 2px;
+    padding: 6px 12px;
+    color: black;
+    background-color: white;
+    cursor: pointer;
+}
+
+.main-trackList-trackEntry:hover {
+    outline: 2px solid paleturquoise;
 }
 
 .main-searchInput,
@@ -108,7 +113,8 @@ a {
 }
 
 .musicPlayer-currentTrackName {
-    margin: 10px;
+    font-size: 18px;
+    margin: 10px 20px;
 }
 
 .musicPlayer-controls {
