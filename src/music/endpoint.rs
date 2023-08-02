@@ -1,11 +1,11 @@
 use std::fs::File;
 use std::io::{Error, Read, Seek, SeekFrom};
 
-use crate::common::{util::Am, logger::Verbosity};
+use crate::common::{logger::Verbosity, util::Am};
 use crate::http::connection::HttpConnection;
 use crate::http::response::HttpResponse;
-use crate::{log, Log, Logger, log_geq};
-use crate::music::index::{get_music_index};
+use crate::music::index::get_music_index;
+use crate::{log, log_geq, Log, Logger};
 
 const CHUNK_SIZE: usize = 1024 * 128; // 128 kb
 
@@ -20,10 +20,7 @@ pub fn list_handler(connection: &mut HttpConnection, logger: &Am<Logger>) -> Res
         .send(connection);
 }
 
-pub fn chunk_handler(
-    connection: &mut HttpConnection,
-    logger: &Am<Logger>,
-) -> Result<(), Error> {
+pub fn chunk_handler(connection: &mut HttpConnection, logger: &Am<Logger>) -> Result<(), Error> {
     let params = connection.params();
 
     let chunk = params
@@ -31,8 +28,7 @@ pub fn chunk_handler(
         .and_then(|x| x.parse::<usize>().ok())
         .unwrap_or(0 as usize);
 
-    let track_result = params
-        .and_then(|x| x.get("name"));
+    let track_result = params.and_then(|x| x.get("name"));
 
     if let Some(filename) = track_result {
         let filepath = get_music_index().get(filename);
@@ -40,7 +36,8 @@ pub fn chunk_handler(
         if let Some(path) = filepath {
             return serve_music_chunk(connection, logger, chunk, path);
         } else {
-            log!(logger, "{} <= 404 No such track", connection.peer_string());
+            log!(logger, "{} <= 404 No such track",
+                 connection.peer_string());
 
             return Ok(HttpResponse::new(404, "Not Found")
                 .set_json_body(&"{ \"message\": \"Track specified was not found\" }")
@@ -66,26 +63,22 @@ fn serve_music_chunk(
     log_geq!(logger, Verbosity::Debug, "Reading from '{}'...", path);
 
     let mut file = File::open(&path)?;
-    let max_size = file.metadata().map(|x| x.len()).unwrap_or(0) as usize;
+    let max_size = file.metadata()
+        .map(|x| x.len()).unwrap_or(0) as usize;
 
     let start_pos = chunk_index * CHUNK_SIZE;
 
     if max_size < start_pos {
         return HttpResponse::new(416, "Range Not Satisfiable")
-                .set_json_body(&"{ \"message\": \"Chunk is out of bounds.\" }")
-                .allow_all_origins(connection)
-                .send(connection);
+            .set_json_body(&"{ \"message\": \"Chunk is out of bounds.\" }")
+            .allow_all_origins(connection)
+            .send(connection);
     }
 
     file.seek(SeekFrom::Start(start_pos as u64))?;
 
     let mut buffer = vec![0; CHUNK_SIZE as usize];
-    let bytes_read = match file.read(&mut buffer[..CHUNK_SIZE as usize]) {
-        Ok(bytes_read) => bytes_read,
-        Err(err) => {
-            return Err(err);
-        }
-    };
+    let bytes_read = file.read(&mut buffer[..CHUNK_SIZE as usize])?;
 
     log!(logger, "{} <= Chunk {}, {}..{}",
          connection.peer_string(), chunk_index, start_pos, start_pos + CHUNK_SIZE);
