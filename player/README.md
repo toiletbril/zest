@@ -1,5 +1,7 @@
 # Zest Player
 
+<img src="../assets/player.png" alt="Screenshot of the player" width=800></img>
+
 By default, this app assumes that Zest is running on `0.0.0.0:6969` on the same machine, and that the browser is capable of decoding `audio/mpeg` using `MediaSource`.
 
 Currently, the it relies on `SourceBuffer` to store audio in memory, which limits the maximum size of a single track to approximately ~10mb.

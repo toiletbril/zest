@@ -1,9 +1,9 @@
+const VERSION = "0.0.1"
+
 const ZEST_PORT = 6969;
 const ZEST_ADDRESS = window.location.hostname; // same machine
 const CHUNK_SIZE = 1024 * 128; // 128 kb
 const AUTOPLAY_ENABLED = true;
-
-const VERSION = "0.0.1"
 
 const MUSIC_ENDPOINT =
     "http://" +
