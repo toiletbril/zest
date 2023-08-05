@@ -9,7 +9,7 @@ extern crate toiletcli;
 use toiletcli::colors::{Color, Style};
 use toiletcli::common::name_from_path;
 use toiletcli::flags;
-use toiletcli::flags::{parse_flags, Flag, FlagType};
+use toiletcli::flags::{parse_flags_until_subcommand, parse_flags, Flag, FlagType};
 
 mod common;
 mod http;
@@ -49,46 +49,17 @@ fn entry() -> Result<(), String> {
     let mut args = args();
     let program_name = name_from_path(&args.next().expect("Path should be provided"));
 
-    let mut port_flag;
-    let mut address_flag;
-    let mut thread_count_flag;
-    let mut utc_flag;
-    let mut log_file_flag;
-    let mut verbosity_flag;
-
     let mut show_version;
     let mut show_help;
 
     let mut flags: Vec<Flag> = flags!(
-        show_help: BoolFlag,           ["--help"],
-        show_version: BoolFlag,        ["--version"],
-        thread_count_flag: StringFlag, ["-t", "--threads"],
-        utc_flag: StringFlag,          ["-u", "--utc"],
-        port_flag: StringFlag,         ["-p", "--port"],
-        address_flag: StringFlag,      ["-a", "--address"],
-        log_file_flag: BoolFlag,       ["-l", "--log-file"],
-        verbosity_flag: RepeatFlag,    ["-v", "--verbose"]
+        show_help: BoolFlag,    ["--help"],
+        show_version: BoolFlag, ["--version"]
     );
 
-    let args = parse_flags(&mut args, &mut flags)?;
+    let subcommand = parse_flags_until_subcommand(&mut args, &mut flags)?;
 
-    let address = address_flag.is_empty()
-        .then_some(DEFAULT_ADDRESS.to_owned())
-        .unwrap_or(address_flag);
-    let port = port_flag
-        .parse::<u32>()
-        .unwrap_or(DEFAULT_PORT);
-    let thread_count = thread_count_flag
-        .parse::<usize>()
-        .unwrap_or(DEFAULT_THREAD_COUNT);
-    let utc = utc_flag
-        .parse::<i8>()
-        .unwrap_or(DEFAULT_UTC);
-    let verbosity: Verbosity =
-        (verbosity_flag as u8)
-        .into();
-
-    if show_help && args.len() < 1 {
+    if show_help {
         eheaderln("USAGE");
         eprintln!("    {} [-options] <subcommand>", program_name);
         eprintln!("    Music-streaming web-server.");
@@ -98,7 +69,7 @@ fn entry() -> Result<(), String> {
         eprintln!("    index [-v]       <directory> \tIndex directory and make an index file.");
         eprintln!("");
         eheaderln("OPTIONS");
-        eprintln!("    --help                       \tGet help for a subcommand.");
+        eprintln!("    --help                       \tDisplay this message.");
         eprintln!("    --version                    \tDisplay version.");
         eprintln!("");
         eprintln!("To report a bug, please open up an issue at <{}https://github.com/toiletbril/zest{}>.",
@@ -113,12 +84,49 @@ fn entry() -> Result<(), String> {
         return Ok(());
     }
 
-    if args.len() < 1 {
+    if subcommand.is_empty() {
         return Err("Not enough arguments".into());
     }
 
-    match args[0].as_str() {
+    match subcommand.as_ref() {
         "serve" => {
+            let mut port_flag;
+            let mut address_flag;
+            let mut thread_count_flag;
+            let mut utc_flag;
+            let mut log_file_flag;
+            let mut verbosity_flag;
+
+            let mut show_help;
+
+            let mut flags = flags!(
+                show_help: BoolFlag,           ["--help"],
+                thread_count_flag: StringFlag, ["-t", "--threads"],
+                utc_flag: StringFlag,          ["-u", "--utc"],
+                port_flag: StringFlag,         ["-p", "--port"],
+                address_flag: StringFlag,      ["-a", "--address"],
+                log_file_flag: BoolFlag,       ["-l", "--log-file"],
+                verbosity_flag: RepeatFlag,    ["-v", "--verbose"]
+            );
+
+            let mut parsed_args = parse_flags(&mut args, &mut flags)?.into_iter();
+
+            let address = address_flag.is_empty()
+                .then_some(DEFAULT_ADDRESS.to_owned())
+                .unwrap_or(address_flag);
+            let port = port_flag
+                .parse::<u32>()
+                .unwrap_or(DEFAULT_PORT);
+            let thread_count = thread_count_flag
+                .parse::<usize>()
+                .unwrap_or(DEFAULT_THREAD_COUNT);
+            let utc = utc_flag
+                .parse::<i8>()
+                .unwrap_or(DEFAULT_UTC);
+            let verbosity: Verbosity =
+                (verbosity_flag as u8)
+                .into();
+
             if show_help {
                 eheaderln("USAGE");
                 eprintln!("    {} serve [-options] <index file>", program_name);
@@ -136,13 +144,13 @@ fn entry() -> Result<(), String> {
                 return Ok(());
             }
 
-            if args.len() < 2 {
-                return Err("Not enough arguments".into());
+            if let Some(filepath) = parsed_args.next() {
+                init_music_index(filepath)?;
+            } else {
+                return Err("Invalid amount of arguments".into());
             }
 
             warn_unstable();
-
-            init_music_index(args[1].to_owned())?;
 
             let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag, Verbosity::from(verbosity))));
             let logger_clone = logger.clone();
@@ -169,6 +177,20 @@ fn entry() -> Result<(), String> {
             }
         }
         "index" => {
+            let mut verbosity_flag;
+            let mut show_help;
+
+            let mut flags: Vec<Flag> = flags!(
+                show_help: BoolFlag,        ["--help"],
+                verbosity_flag: RepeatFlag, ["-v", "--verbose"]
+            );
+
+            let mut parsed_args = parse_flags(&mut args, &mut flags)?.into_iter();
+
+            let verbosity: Verbosity =
+                (verbosity_flag as u8)
+                .into();
+
             if show_help {
                 eheaderln("USAGE");
                 eprintln!("    {} index [-options] <music directory>", program_name);
@@ -181,25 +203,22 @@ fn entry() -> Result<(), String> {
                 return Ok(());
             }
 
-            if args.len() < 2 {
+            if let Some(dir_path) = parsed_args.next() {
+                eprintln!("Traversing '{}'...", dir_path);
+                match make_index(&dir_path, verbosity) {
+                    Err(err) => return Err(format!("While indexing '{}': {}", dir_path, err)),
+                    Ok(filename) => {
+                        eprintln!("Successfully traversed '{}', created '{}'.", dir_path, filename)
+                    }
+                }
+
+                Ok(())
+            } else {
                 return Err("Not enough arguments".into());
             }
-
-            let path = args[1].to_owned();
-
-            eprintln!("Traversing '{}'...", path);
-
-            match make_index(&path, verbosity) {
-                Err(err) => return Err(format!("While indexing '{}': {}", path, err)),
-                Ok(filename) => {
-                    eprintln!("Successfully traversed '{}', created '{}'.", path, filename)
-                }
-            }
-
-            Ok(())
         }
         _ => {
-            Err(format!("Unknown subcommand '{}'", args[0]))
+            Err(format!("Unknown subcommand '{}'", subcommand))
         }
     }
 }
