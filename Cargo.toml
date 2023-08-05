@@ -1,6 +1,6 @@
 [package]
 name = "zest"
-version = "0.6.5-unstable"
+version = "0.6.6-unstable"
 edition = "2021"
 repository = "https://github.com/toiletbril/zest"
 authors = ["toiletbril"]
@@ -11,4 +11,4 @@ strip = true
 lto = true
 
 [dependencies]
-toiletcli = "0.6.1"
+toiletcli = "0.7.1"
