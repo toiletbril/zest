@@ -19,11 +19,12 @@ mod server;
 use common::logger::{Log, Logger, Verbosity};
 
 use server::dispatcher::start_dispatcher;
-use server::router::route;
+use server::router::handle_routes;
 
 use music::index::init_music_index;
 use music::index::make_index;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[inline(always)]
 fn warn_unstable() {
@@ -42,8 +43,6 @@ fn print_header(message: &str) {
     eprintln!("{}{}{}", Color::Green, message, Color::Reset);
 }
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
 pub const DEFAULT_ADDRESS: &str = "0.0.0.0";
 pub const DEFAULT_PORT: u32 = 6969;
 pub const DEFAULT_THREAD_COUNT: usize = 8;
@@ -52,8 +51,9 @@ pub const DEFAULT_VERBOSITY: u8 = 0;
 
 fn entry() -> Result<(), String> {
     let mut args = args();
-    let program_name = name_from_path(&args.next()
-        .expect("Path should be provided"));
+    let program_name = name_from_path(
+            &args.next().expect("Path should be provided")
+        );
 
     let mut show_version;
     let mut show_help;
@@ -125,7 +125,7 @@ fn entry() -> Result<(), String> {
             let thread_count = thread_count_flag
                 .parse::<usize>()
                 .unwrap_or(DEFAULT_THREAD_COUNT);
-            let utc = utc_flag
+            let utc_offset = utc_flag
                 .parse::<i8>()
                 .unwrap_or(DEFAULT_UTC);
             let verbosity: Verbosity =
@@ -159,7 +159,7 @@ fn entry() -> Result<(), String> {
             show_bug_report();
 
             let logger = Arc::new(Mutex::new(
-                    Logger::new(utc, log_file_flag, Verbosity::from(verbosity))
+                    Logger::new(utc_offset, log_file_flag, Verbosity::from(verbosity))
                 ));
             let dispatcher_logger = logger.clone();
 
@@ -172,12 +172,12 @@ fn entry() -> Result<(), String> {
                         format!("{address}:{port}"),
                         thread_count,
                         dispatcher_logger,
-                        route,
+                        handle_routes,
                     );
                 }).map_err(|err| err.to_string())?;
 
             log!(logger, "Starting the logger (mode: {}, logfile: {}, {} hour offset)...",
-                 verbosity, log_file_flag, utc);
+                 verbosity, log_file_flag, utc_offset);
 
             loop {
                 let _ = flush!(logger);
@@ -185,19 +185,15 @@ fn entry() -> Result<(), String> {
             }
         }
         "index" => {
-            let mut verbosity_flag;
+            let mut be_verbose;
             let mut show_help;
 
             let mut flags: Vec<Flag> = flags!(
-                show_help: BoolFlag,        ["--help"],
-                verbosity_flag: RepeatFlag, ["-v", "--verbose"]
+                show_help: BoolFlag,  ["--help"],
+                be_verbose: BoolFlag, ["-v", "--verbose"]
             );
 
             let mut parsed_args = parse_flags(&mut args, &mut flags)?.into_iter();
-
-            let verbosity: Verbosity =
-                (verbosity_flag as u8)
-                .into();
 
             if show_help {
                 print_header("USAGE");
@@ -213,7 +209,7 @@ fn entry() -> Result<(), String> {
 
             if let Some(dir_path) = parsed_args.next() {
                 eprintln!("Traversing '{}'...", dir_path);
-                match make_index(&dir_path, verbosity) {
+                match make_index(&dir_path, be_verbose) {
                     Err(err) => return Err(format!("While indexing '{}': {}", dir_path, err)),
                     Ok(filename) => {
                         eprintln!("Successfully traversed '{}', created '{}'.", dir_path, filename)

@@ -34,15 +34,6 @@ impl From<u8> for Verbosity {
     }
 }
 
-impl Verbosity {
-    #[inline(always)]
-    pub fn print_if<T: Display>(&self, verbosity_compare: Verbosity, message: T) {
-        if *self as u8 >= verbosity_compare as u8 {
-            eprintln!("{}", message);
-        }
-    }
-}
-
 struct LogEntry {
     message: String,
 }
