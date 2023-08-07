@@ -20,23 +20,21 @@ impl Worker {
 
         let builder = Builder::new().name("worker".to_string());
 
-        let main_loop = move || loop {
-            {
-                let to_exec = match receiver_clone.lock() {
-                    Ok(queue) => queue.recv(),
-                    Err(err) => {
-                        log!(logger, "Shutting down: {}", err);
-                        break;
-                    }
-                };
-
-                if let Ok(job) = to_exec {
-                    job()
+        let worker_loop = move || loop {
+            let to_exec = match receiver_clone.lock() {
+                Ok(queue) => queue.recv(),
+                Err(err) => {
+                    log!(logger, "Shutting down: {}", err);
+                    break;
                 }
+            };
+
+            if let Ok(job) = to_exec {
+                job()
             }
         };
 
-        match builder.spawn(move || main_loop()) {
+        match builder.spawn(move || worker_loop()) {
             Ok(thread) => Worker {
                 id: id,
                 handle: Some(thread),
@@ -96,7 +94,7 @@ impl ThreadPool {
                 Err(_val) => todo!(),
             }
         } else {
-            panic!("*** Dropped thread pool can not execute more jobs.");
+            panic!("*** Dropped thread pool cannot execute more jobs.");
         }
     }
 }

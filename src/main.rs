@@ -153,20 +153,23 @@ fn entry() -> Result<(), String> {
             warn_unstable();
 
             let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag, Verbosity::from(verbosity))));
-            let logger_clone = logger.clone();
 
             log!(logger, "Starting the dispatcher ({} threads)...", thread_count);
 
-            Builder::new()
+            let dispatcher_logger = logger.clone();
+
+            let _ = Builder::new()
                 .name("dispatcher".to_string())
                 .spawn(move || {
-                    let _ = start_dispatcher(
+                    let err = start_dispatcher(
                         format!("{address}:{port}"),
                         thread_count,
-                        logger_clone,
+                        &dispatcher_logger,
                         route,
                     );
-                }).map_err(|err| err.to_string())?;
+
+                    log!(dispatcher_logger, "*** A fatal error occured: {}", err.unwrap_err());
+                });
 
             log!(logger, "Starting the logger (mode: {}, logfile: {}, {} hour offset)...",
                  verbosity, log_file_flag, utc);
