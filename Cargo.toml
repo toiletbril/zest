@@ -11,4 +11,4 @@ strip = true
 lto = true
 
 [dependencies]
-toiletcli = "0.7.1"
+toiletcli = "0.7.3"
