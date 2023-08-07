@@ -10,7 +10,7 @@ checksum = "b1a7cc9d8e93237edf791836dcb9b1f7865f17a82b63bc67fdc09038a272616c"
 
 [[package]]
 name = "zest"
-version = "0.6.6-unstable"
+version = "0.6.7-unstable"
 dependencies = [
  "toiletcli",
 ]
