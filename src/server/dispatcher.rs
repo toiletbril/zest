@@ -18,12 +18,13 @@ type DispatcherJob = fn(&mut HttpConnection, &Am<Logger>) -> Result<(), Box<dyn 
 pub fn start_dispatcher<'a>(
     address: String,
     thread_count: usize,
-    logger: Am<Logger>,
+    logger: &Am<Logger>,
     job: DispatcherJob,
 ) -> Result<(), std::io::Error> {
     log!(logger, "Binding to <http://{address}>...");
 
     let listener = TcpListener::bind(address)?;
+
     let thread_pool = ThreadPool::new(thread_count, logger.clone());
 
     log!(logger, "Started. Available threads: {}.", thread_pool.size());

@@ -33,7 +33,7 @@ fn warn_unstable() {
 }
 
 #[inline(always)]
-fn show_bug_report() {
+fn ask_to_report_bugs() {
     eprintln!("To report a bug, please open up an issue at <{}https://github.com/toiletbril/zest{}>.",
                   Style::Underlined, Style::ResetUnderline);
 }
@@ -78,7 +78,7 @@ fn entry() -> Result<(), String> {
         eprintln!("    --help                       \tDisplay this message.");
         eprintln!("    --version                    \tDisplay version.");
         eprintln!("");
-        show_bug_report();
+        ask_to_report_bugs();
 
         return Ok(());
     }
@@ -156,7 +156,7 @@ fn entry() -> Result<(), String> {
             }
 
             warn_unstable();
-            show_bug_report();
+            ask_to_report_bugs();
 
             let logger = Arc::new(Mutex::new(
                     Logger::new(utc_offset, log_file_flag, Verbosity::from(verbosity))
@@ -165,16 +165,18 @@ fn entry() -> Result<(), String> {
 
             log!(logger, "Starting the dispatcher ({} threads)...", thread_count);
 
-            Builder::new()
+            let _ = Builder::new()
                 .name("dispatcher".into())
                 .spawn(move || {
-                    let _ = start_dispatcher(
+                    let err = start_dispatcher(
                         format!("{address}:{port}"),
                         thread_count,
-                        dispatcher_logger,
+                        &dispatcher_logger,
                         handle_routes,
                     );
-                }).map_err(|err| err.to_string())?;
+
+                    log!(dispatcher_logger, "*** A fatal error occured: {}", err.unwrap_err());
+                });
 
             log!(logger, "Starting the logger (mode: {}, logfile: {}, {} hour offset)...",
                  verbosity, log_file_flag, utc_offset);
@@ -198,7 +200,7 @@ fn entry() -> Result<(), String> {
             if show_help {
                 print_header("USAGE");
                 eprintln!("    {} index [-options] <music directory>", program_name);
-                eprintln!("    Index the directory and generate an index.");
+                eprintln!("    Index a directory and generate index file.");
                 eprintln!("");
                 print_header("OPTIONS");
                 eprintln!("    -v        \tVerbose output.");
