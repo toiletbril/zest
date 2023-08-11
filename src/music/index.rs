@@ -54,7 +54,7 @@ pub fn get_music_index() -> &'static MusicIndex {
     unsafe { STATIC_MUSIC_INDEX.as_ref().unwrap() }
 }
 
-// {"path": "...", "entries": [ { "...": "..." }, ...] }
+// {"path":"...","entries":[{"...":"..."},...]}
 fn load_index(path: String) -> Result<MusicIndex, Error> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);

@@ -5,7 +5,6 @@ use std::path::Path;
 use std::thread::current;
 use std::time::SystemTime;
 
-/// This filters out complex messages if not needed.
 #[repr(u8)]
 #[derive(PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub enum Verbosity {
@@ -101,7 +100,6 @@ macro_rules! log {
 }
 
 // TODO: Get rid of these.
-
 
 #[macro_export]
 /// Logs if verbosity is greater or equal to specified.

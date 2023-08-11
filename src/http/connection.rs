@@ -50,7 +50,6 @@ struct HttpRequest {
 }
 
 fn parse_request_line(line: &str, request: &mut HttpRequest) -> Result<(), Error> {
-    // This supports multiple spaces between values on request line.
     let mut parts = line.split_whitespace();
 
     if parts.clone().count() < 2 {
@@ -148,10 +147,6 @@ fn parse_header_line(line: &str, headers: &mut HashMap<String, String>) -> Resul
 
 const MAX_HEADER_SIZE: usize = 1024 * 4;
 
-/// Returns `Err` when:
-/// - size of headers exceeded `MAX_HEADER_SIZE`.
-/// - the request line is malformed.
-/// - a header is malformed.
 fn parse_http_request(stream: &mut TcpStream) -> Result<HttpRequest, Error> {
     let mut total_bytes_read = 0;
     let mut current_line = String::new();
@@ -221,9 +216,9 @@ impl Drop for HttpConnection {
 
 #[allow(unused)]
 impl HttpConnection {
-    /// Parses and consumes TcpStream, making a HttpConnection out of it.
+    /// Parses and consumes TcpStream.
     ///
-    /// Returns `Err` when:
+    /// `Err`:
     /// - size of headers exceeded `MAX_HEADER_SIZE`.
     /// - the request line is malformed.
     /// - a header is malformed.
@@ -377,7 +372,7 @@ mod tests {
         assert_eq!(headers.get("content-type").unwrap(), "text/html");
     }
 
-    fn start_test_listener(payload: &[u8]) -> TcpStream {
+    fn mock_listener(payload: &[u8]) -> TcpStream {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = listener.local_addr().unwrap();
 
@@ -395,7 +390,7 @@ mod tests {
         let payload =
             b"PATCH /api/v1/music/all?hello=world&what=nothing HTTP/1.0\r\nHost: www.example.com\r\n\r\n";
 
-        let mut stream = start_test_listener(payload);
+        let mut stream = mock_listener(payload);
 
         match parse_http_request(&mut stream) {
             Ok(request) => {

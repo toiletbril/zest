@@ -8,7 +8,6 @@ use crate::log;
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
-/// A single thread.
 struct Worker {
     id: usize,
     handle: Option<JoinHandle<()>>,

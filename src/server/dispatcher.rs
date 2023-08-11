@@ -49,8 +49,6 @@ pub fn start_dispatcher<'a>(
     Ok(())
 }
 
-/// This handles TcpStreams.
-/// It parses the stream and makes `HttpConnection` out of it, breaking the chain and logging an error if it failed.
 fn handle_stream<'a>(
     stream: TcpStream,
     logger: Am<Logger>,
