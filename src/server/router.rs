@@ -7,7 +7,7 @@ use crate::{
     music::endpoint::{chunk_handler, list_handler},
 };
 
-pub fn route<'a>(
+pub fn handle_routes<'a>(
     connection: &mut HttpConnection,
     logger: &Am<Logger>,
 ) -> Result<(), Box<dyn Error>> {

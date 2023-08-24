@@ -1,4 +1,4 @@
-use crate::common::{util::{iter_to_json_string, FileName, FilePath}, logger::Verbosity};
+use crate::common::{util::{iter_to_json_string, FileName, FilePath}};
 use std::{
     collections::HashMap,
     fs::{self, File},
@@ -140,12 +140,13 @@ fn load_index(path: String) -> Result<MusicIndex, Error> {
     })
 }
 
-pub fn make_index(path: &FilePath, verbosity: Verbosity) -> Result<String, Error> {
-    make_index_file(recurse_music(&path, verbosity)?, path)
+pub fn make_index(path: &FilePath, be_verbose: bool) -> Result<String, Error> {
+    make_index_file(recurse_music(&path, be_verbose)?, path)
 }
 
-fn recurse_music(path: &String, verbosity: Verbosity) -> Result<HashMap<FileName, FilePath>, Error> {
-    fn internal(path: &String, initial_path_len: usize, verbosity: &Verbosity) -> Result<HashMap<FileName, FilePath>, Error> {
+fn recurse_music(path: &String, be_verbose: bool) -> Result<HashMap<FileName, FilePath>, Error> {
+    fn internal(path: &String, initial_path_len: usize, be_verbose: bool)
+        -> Result<HashMap<FileName, FilePath>, Error> {
         let mut dir = fs::read_dir(path.to_string())?;
         let mut index: HashMap<FileName, FilePath> = HashMap::new();
 
@@ -160,25 +161,30 @@ fn recurse_music(path: &String, verbosity: Verbosity) -> Result<HashMap<FileName
 
             if let Ok(true) = file.metadata().map(|x| x.is_file()) {
                 if filepath.ends_with(".mp3") {
-                    verbosity.print_if(Verbosity::Details, format!("Adding {}...", filename));
+                    if be_verbose {
+                        println!("Adding {}...", filename);
+                    }
 
                     filepath.drain(..initial_path_len);
+
                     index.insert(
                         filename.trim_end_matches(".mp3").to_owned(),
                         filepath.trim_start_matches(path.as_str()).to_owned(),
                     );
                 }
             } else {
-                verbosity.print_if(Verbosity::Details, format!("Entering {:?}...", file.file_name()));
+                if be_verbose {
+                    println!("Entering {:?}...", file.file_name());
+                }
 
-                index.extend(internal(&filepath, initial_path_len, verbosity)?);
+                index.extend(internal(&filepath, initial_path_len, be_verbose)?);
             }
         }
 
         Ok(index)
     }
 
-    internal(path, path.len(), &verbosity)
+    internal(path, path.len(), be_verbose)
 }
 
 fn make_index_file(index: HashMap<FileName, FilePath>, path: &FilePath) -> Result<String, Error> {

@@ -19,7 +19,7 @@ mod server;
 use common::logger::{Log, Logger, Verbosity};
 
 use server::dispatcher::start_dispatcher;
-use server::router::route;
+use server::router::handle_routes;
 
 use music::index::init_music_index;
 use music::index::make_index;
@@ -30,12 +30,16 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn warn_unstable() {
     eprintln!("{}Running Zest {}. The design is not final, and may be subject to change.",
               Style::Bold, VERSION);
-    eprintln!("To report a bug, please open up an issue at <{}https://github.com/toiletbril/zest{}>.{}\n",
-              Style::Underlined, Style::ResetUnderline, Style::Reset);
 }
 
 #[inline(always)]
-fn eheaderln(message: &str) {
+fn ask_to_report_bugs() {
+    eprintln!("To report a bug, please open up an issue at <{}https://github.com/toiletbril/zest{}>.",
+                  Style::Underlined, Style::ResetUnderline);
+}
+
+#[inline(always)]
+fn print_header(message: &str) {
     eprintln!("{}{}{}", Color::Green, message, Color::Reset);
 }
 
@@ -47,7 +51,9 @@ pub const DEFAULT_VERBOSITY: u8 = 0;
 
 fn entry() -> Result<(), String> {
     let mut args = args();
-    let program_name = name_from_path(&args.next().expect("Path should be provided"));
+    let program_name = name_from_path(
+            &args.next().expect("Path should be provided")
+        );
 
     let mut show_version;
     let mut show_help;
@@ -60,20 +66,19 @@ fn entry() -> Result<(), String> {
     let subcommand = parse_flags_until_subcommand(&mut args, &mut flags)?;
 
     if show_help {
-        eheaderln("USAGE");
+        print_header("USAGE");
         eprintln!("    {} [-options] <subcommand>", program_name);
         eprintln!("    Music-streaming web-server.");
         eprintln!("");
-        eheaderln("SUBCOMMANDS");
+        print_header("SUBCOMMANDS");
         eprintln!("    serve [-ptaulvv] <index file>\tServe the music.");
         eprintln!("    index [-v]       <directory> \tIndex directory and make an index file.");
         eprintln!("");
-        eheaderln("OPTIONS");
+        print_header("OPTIONS");
         eprintln!("    --help                       \tDisplay this message.");
         eprintln!("    --version                    \tDisplay version.");
         eprintln!("");
-        eprintln!("To report a bug, please open up an issue at <{}https://github.com/toiletbril/zest{}>.",
-                  Style::Underlined, Style::ResetUnderline);
+        ask_to_report_bugs();
 
         return Ok(());
     }
@@ -120,7 +125,7 @@ fn entry() -> Result<(), String> {
             let thread_count = thread_count_flag
                 .parse::<usize>()
                 .unwrap_or(DEFAULT_THREAD_COUNT);
-            let utc = utc_flag
+            let utc_offset = utc_flag
                 .parse::<i8>()
                 .unwrap_or(DEFAULT_UTC);
             let verbosity: Verbosity =
@@ -128,11 +133,11 @@ fn entry() -> Result<(), String> {
                 .into();
 
             if show_help {
-                eheaderln("USAGE");
+                print_header("USAGE");
                 eprintln!("    {} serve [-options] <index file>", program_name);
                 eprintln!("    Serve the music, using index file.");
                 eprintln!("");
-                eheaderln("OPTIONS");
+                print_header("OPTIONS");
                 eprintln!("    -p, --port <port>      \tSet server's port.");
                 eprintln!("    -a, --address <adress> \tSet server's address.");
                 eprintln!("    -t, --threads <count>  \tAmount of threads to create.");
@@ -151,55 +156,53 @@ fn entry() -> Result<(), String> {
             }
 
             warn_unstable();
+            ask_to_report_bugs();
 
-            let logger = Arc::new(Mutex::new(Logger::new(utc, log_file_flag, Verbosity::from(verbosity))));
+            let logger = Arc::new(Mutex::new(
+                    Logger::new(utc_offset, log_file_flag, Verbosity::from(verbosity))
+                ));
+            let dispatcher_logger = logger.clone();
 
             log!(logger, "Starting the dispatcher ({} threads)...", thread_count);
 
-            let dispatcher_logger = logger.clone();
-
             let _ = Builder::new()
-                .name("dispatcher".to_string())
+                .name("dispatcher".into())
                 .spawn(move || {
                     let err = start_dispatcher(
                         format!("{address}:{port}"),
                         thread_count,
                         &dispatcher_logger,
-                        route,
+                        handle_routes,
                     );
 
                     log!(dispatcher_logger, "*** A fatal error occured: {}", err.unwrap_err());
                 });
 
             log!(logger, "Starting the logger (mode: {}, logfile: {}, {} hour offset)...",
-                 verbosity, log_file_flag, utc);
+                 verbosity, log_file_flag, utc_offset);
 
             loop {
                 let _ = flush!(logger);
-                sleep(Duration::from_micros(1000));
+                sleep(Duration::from_millis(10));
             }
         }
         "index" => {
-            let mut verbosity_flag;
+            let mut be_verbose;
             let mut show_help;
 
             let mut flags: Vec<Flag> = flags!(
-                show_help: BoolFlag,        ["--help"],
-                verbosity_flag: RepeatFlag, ["-v", "--verbose"]
+                show_help: BoolFlag,  ["--help"],
+                be_verbose: BoolFlag, ["-v", "--verbose"]
             );
 
             let mut parsed_args = parse_flags(&mut args, &mut flags)?.into_iter();
 
-            let verbosity: Verbosity =
-                (verbosity_flag as u8)
-                .into();
-
             if show_help {
-                eheaderln("USAGE");
+                print_header("USAGE");
                 eprintln!("    {} index [-options] <music directory>", program_name);
-                eprintln!("    Index the directory and generate an index.");
+                eprintln!("    Index a directory and generate index file.");
                 eprintln!("");
-                eheaderln("OPTIONS");
+                print_header("OPTIONS");
                 eprintln!("    -v        \tVerbose output.");
                 eprintln!("        --help\tDisplay this message.");
 
@@ -208,7 +211,7 @@ fn entry() -> Result<(), String> {
 
             if let Some(dir_path) = parsed_args.next() {
                 eprintln!("Traversing '{}'...", dir_path);
-                match make_index(&dir_path, verbosity) {
+                match make_index(&dir_path, be_verbose) {
                     Err(err) => return Err(format!("While indexing '{}': {}", dir_path, err)),
                     Ok(filename) => {
                         eprintln!("Successfully traversed '{}', created '{}'.", dir_path, filename)
@@ -217,7 +220,7 @@ fn entry() -> Result<(), String> {
 
                 Ok(())
             } else {
-                return Err("Not enough arguments".into());
+                Err("Not enough arguments".into())
             }
         }
         _ => {

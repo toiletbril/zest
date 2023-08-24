@@ -1,7 +1,6 @@
 - Tests for `http` module.
-- Move from json to sqlite3?
+- sqlite3.
 - Transcode everything to webm?
-- JSON struct.
 - Hot reindexing.
 - More effective index.
 - Room API.
