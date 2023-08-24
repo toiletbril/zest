@@ -28,14 +28,14 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[inline(always)]
 fn warn_unstable() {
-    eprintln!("{}Running Zest {}. The design is not final, and may be subject to change.",
-              Style::Bold, VERSION);
+    eprintln!("{}Running Zest {}. The design is not final, and may be subject to change.{}",
+        Style::Bold, VERSION, Style::Reset);
 }
 
 #[inline(always)]
 fn ask_to_report_bugs() {
-    eprintln!("To report a bug, please open up an issue at <{}https://github.com/toiletbril/zest{}>.",
-                  Style::Underlined, Style::ResetUnderline);
+    eprintln!("{}To report a bug, please open up an issue at <{}https://github.com/toiletbril/zest{}>.{}",
+        Style::Bold, Style::Underlined, Style::ResetUnderline, Style::Reset);
 }
 
 #[inline(always)]
